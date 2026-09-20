@@ -1162,6 +1162,90 @@ Evidence determines the next cycle.
 
 ---
 
+# 28A. SINGLE-CANDIDATE VALIDATION + CONTINGENCY NAMING RULE
+
+A cycle may intentionally test **one specific candidate** without turning the entire naming program into a single-candidate-only process.
+
+This rule exists for situations where a candidate such as **PALVEDRANT** emerges as a serious survivor from a prior cycle and requires a full destructive validation before broader naming resumes.
+
+## Single-candidate mode
+
+When a cycle is explicitly designated as a single-candidate validation cycle:
+
+1. Treat the named candidate as the primary subject of the cycle.
+2. Do not generate a large competing candidate batch before the validation is complete.
+3. Apply the full Brand Lock System to that candidate.
+4. Attempt to destroy the candidate rather than defend it.
+5. Preserve all material evidence.
+6. Do not force the candidate to survive merely because previous cycles produced no lock.
+7. Do not create spelling variants or cosmetic mutations merely to rescue a failed candidate unless the next cycle methodology explicitly calls for variant generation.
+
+## Candidate failure branch
+
+If the tested candidate fails a **hard gate**, receives a material unresolved collision, or otherwise cannot reasonably proceed as a serious brand candidate:
+
+**REJECT THE CANDIDATE.**
+
+Do not reinterpret a failed candidate as a finalist merely because the naming program needs a winner.
+
+Immediately record:
+
+- exact failure reason;
+- evidence supporting the rejection;
+- which gate failed;
+- whether the failure is terminal or methodology-specific;
+- what the failure teaches about the naming space.
+
+## Automatic return to naming mode
+
+If the single candidate fails, the program must automatically activate the next naming cycle.
+
+The next cycle must be a **NEW CANDIDATE GENERATION / RENAMING CYCLE**, not another attempt to rescue the failed candidate.
+
+The next cycle must use the failure evidence as a methodological input.
+
+Required sequence:
+
+**SINGLE-CANDIDATE TEST → FAIL → DOCUMENT FAILURE → EXTRACT LEARNING → CHANGE METHODOLOGY → GENERATE NEW CANDIDATES → SCREEN → DEEP RESEARCH → CLEARANCE GATE**
+
+Do not stop the overall naming program merely because the tested candidate failed.
+
+## Candidate success branch
+
+If the candidate passes the internal gates:
+
+**PRESERVE CANDIDATE → PROFESSIONAL CLEARANCE → FINAL BRAND-LOCK GATE**
+
+Do not automatically generate another naming batch simply because alternative candidates could exist.
+
+If professional clearance is pending, use:
+
+**NO FINAL BRAND LOCK — PROFESSIONAL CLEARANCE PENDING**
+
+If professional clearance genuinely supports the candidate and all strategic gates pass:
+
+**BRAND LOCK RECOMMENDED**
+
+## Important distinction
+
+A **single-candidate cycle** answers:
+
+> “Can this specific candidate survive the complete Brand Lock System?”
+
+The **overall naming program** answers:
+
+> “Does a defensible long-term brand identity exist?”
+
+Therefore:
+
+**Testing one candidate does NOT terminate the broader naming program.**
+
+A failed candidate reactivates naming.
+
+A surviving candidate advances to clearance.
+
+This rule applies to PALVEDRANT and to any future candidate intentionally selected for single-candidate validation.
+
 # 29. HISTORICAL CONTINUITY
 
 At the beginning of every cycle report, include:
