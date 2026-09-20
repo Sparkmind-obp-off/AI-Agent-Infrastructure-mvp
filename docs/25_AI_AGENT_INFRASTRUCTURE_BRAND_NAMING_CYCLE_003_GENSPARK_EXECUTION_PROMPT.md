@@ -726,56 +726,53 @@ say so explicitly.
 
 You may use accessible public web evidence, but distinguish it from authoritative registry/professional evidence.
 
-If repository write-back is unavailable, produce the complete canonical Markdown report and state:
+If repository write-back is unavailable, produce the concise Cycle Summary Artifact content and state:
 
 **Repository write-back unavailable; no commit fabricated.**
 
-If write-back IS available, create the canonical report and verify the saved file before claiming completion.
+If write-back IS available, create the summary artifact(s) and verify the saved file(s) before claiming completion.
+
+Do NOT generate a long canonical report merely because a capability is unavailable.
 
 ---
 
-## 24. CANONICAL REPORT
+## 24. CYCLE 003 SUMMARY ARTIFACTS — NO LONG REPORT
 
-The canonical report MUST be:
+Do NOT create a long canonical Cycle 003 report.
+
+Create:
+
+`docs/AI_AGENT_INFRASTRUCTURE_BRAND_NAMING_CYCLE_003_SUMMARY.md`
+
+The summary must contain only:
+
+1. Cycle / Date
+2. Final Status
+3. Objective
+4. Structural Shift from Cycle 002
+5. Historical Learning Used
+6. Candidate Funnel / Counts
+7. Important Survivors or Finalists
+8. Main Terminal Collisions
+9. Evidence Gaps / Unverified Items
+10. Professional Clearance State
+11. Strategic Learning
+12. Next-Cycle Trigger
+13. Repository / Commit Status
+
+Create this optional companion only if the evidence table would materially overload the summary:
+
+`docs/AI_AGENT_INFRASTRUCTURE_BRAND_NAMING_CYCLE_003_EVIDENCE.md`
+
+The companion contains concise evidence tables and source references only.
+
+Do NOT create:
 
 `docs/AI_AGENT_INFRASTRUCTURE_BRAND_NAMING_CYCLE_003.md`
 
-Required sections:
+unless explicitly requested by the project owner.
 
-1. Executive Summary
-2. Cycle Objective
-3. Repository Audit
-4. Product / Naming Brief
-5. Historical State — Cycle 001
-6. Historical State — Cycle 002
-7. Structural Assumption Being Changed
-8. Fresh 2026 Saturation Map
-9. Linguistic Corridor Analysis
-10. Candidate Construction Method
-11. Candidate Generation
-12. First-Gate Exact-String Collision Scan
-13. Indonesian Linguistic Filter
-14. Cross-Linguistic Filter
-15. Deep Web / Software / Ecosystem Research
-16. Trademark Evidence
-17. Domain Evidence
-18. Phonetic-Neighbor Analysis
-19. Primary Association
-20. Infrastructure Credibility
-21. Brand Architecture
-22. Adversarial Review
-23. Final Shortlist
-24. Comparative Matrix
-25. Professional Clearance Handoff
-26. Strategic Lock Gate
-27. Final Decision
-28. Next-Cycle Trigger
-29. Methodological Learning
-30. Evidence Gaps
-31. Limitations
-32. Final Response
-
-Do not omit failed candidates when their failure explains the methodology.
+Research deeply, but summarize aggressively. Preserve only decision-critical evidence.
 
 ---
 
@@ -783,21 +780,23 @@ Do not omit failed candidates when their failure explains the methodology.
 
 If you have repository write access:
 
-1. Create `docs/AI_AGENT_INFRASTRUCTURE_BRAND_NAMING_CYCLE_003.md`
-2. Write the complete canonical report.
-3. Re-read/verify the saved file.
+1. Create/update `docs/AI_AGENT_INFRASTRUCTURE_BRAND_NAMING_CYCLE_003_SUMMARY.md`
+2. Create `docs/AI_AGENT_INFRASTRUCTURE_BRAND_NAMING_CYCLE_003_EVIDENCE.md` only if materially useful.
+3. Re-read/verify the saved artifact(s).
 4. Report the actual commit SHA.
 5. Do not fabricate a SHA.
 
 Suggested commit message:
 
-`docs: add AI Agent Infrastructure brand naming Cycle 003`
+`docs: add AI Agent Infrastructure brand naming Cycle 003 summary`
 
-If write access is unavailable, provide the complete Markdown report in the response or as a generated artifact and explicitly state that the maintainer must commit it.
+Do NOT create a long canonical report.
 
 ---
 
 ## 26. FINAL RESPONSE FORMAT
+
+Keep the chat response concise. Do not paste the full research report or full candidate ledger.
 
 Return:
 
