@@ -1,0 +1,208 @@
+# AI Agent Infrastructure — Brand Naming Cycle 011 Summary
+
+## 1. Cycle / Date
+- Cycle: 011
+- Date: 2026-09-20 (UTC)
+- Repository: Sparkmind-obp-off/AI-Agent-Infrastructure-mvp
+- Prior cycle: 010 — NO BRAND LOCK
+
+## 2. Status
+**NO BRAND LOCK.**
+Zero candidates survived combined registry-first, pharma, ecosystem, cross-language,
+and phonetic destruction gates.
+
+## 3. Objective
+Test whether moving trademark/clearance constraints upstream (registry-first,
+clearance-constrained generation) materially changes the naming problem, versus
+the generate-then-search pattern that terminated Cycles 001–010.
+
+## 4. Methodological Shift from Cycle 010
+- Cycles 001–010: GENERATE → SEARCH → CLEARANCE (post-hoc destruction).
+- Cycle 011: CLEARANCE CONSTRAINTS → REGISTRY-FIRST FILTER → CONTROLLED
+  GENERATION (10 candidates max) → IMMEDIATE DESTRUCTION → PROFESSIONAL HANDOFF.
+- Track A (acquisition/existing-asset scout) run in parallel with Track B
+  (clearance-constrained new-name generation).
+
+## 5. Historical Learning Applied (from Cycle 010 §2)
+1. Vowel-final coined families → excluded.
+2. Hard-consonant tails (-ant/-ent/-ith/-ast/-ont) → excluded.
+3. Two-word neutral semantic pairs → excluded.
+4. "Search-sparse ≠ available" → registry-first, not search-first.
+5. Fantasy/fan-wiki morphology → excluded.
+6. Personal-name shapes (Slavic -ov/-ski, Nordic -sen) → excluded.
+7. Public aftermarket surfaces insufficient → Track A ceiling explicitly recognized.
+8. Trademark clearance the largest gap → REQUIRES PROFESSIONAL CLEARANCE labelling
+   used throughout.
+9. Volume is not the solution → n=10 hard cap enforced.
+Rejected names not recycled: PALVEDRANT, Quenlox, Axenomik, Qrivax, Belrast,
+Halront, Kelvant, Bordith.
+
+## 6. Repository Audit Result
+PARTIAL. Direct repo read unavailable in execution environment (no GitHub-bound
+read tool). Historical constraints applied from the Cycle 011 execution prompt
+content (which encodes Cycles 001–010 terminal learnings verbatim). No prior
+docs/01–23 or Cycle 001–010 artifacts were re-inspected. Recorded as limitation,
+not fabricated.
+
+## 7. Clearance Constraint Map (pre-generation)
+- Blocked morphology: -ai, -agent, -tech, -cloud, -labs, -digital, -systems,
+  -platform, -automation, -dex, -nova, -vela, -vora, -vent, -tril.
+- Blocked shapes: pharma endings (-ex/-in/-am/-zol/-pril/-mab/-tinib/-statin),
+  personal-name shapes (-ov/-ski/-sen/-us), vowel-final coined,
+  two-word neutral semantic pairs, fantasy morphology.
+- Required architecture: one word, 6–10 letters, 2–4 syllables, semantically
+  light, ID+EN pronunciation stable, hearing→spelling recoverable, no obvious
+  ordinary meaning, no obvious cultural/religious/geographic anchor.
+
+## 8. Track A — Acquisition / Existing-Asset Scout
+Public surfaces inspected (SEARCH-OBSERVED): Sedo, Atom.com, BrandBucket,
+Squadhelp, Acquire.com, BizBuySell, Quiet Light, HowToBuySaaS; USPTO/Corsearch
+guidance on dead/abandoned marks.
+- PAID BROKERAGE UNAVAILABLE — ACQUISITION CLEARANCE GAP REMAINS.
+- No specific acquireable asset advances to shortlist.
+- Track A verdict: closed for Cycle 011.
+
+## 9. Track B — Candidate Funnel
+Raw candidates (n=10): Fromock, Plunep, Krumel, Trebune, Spomel, Grebock,
+Klavune, Frunep, Trombek, Ploskem.
+
+Pre-search self-audit killed 3:
+- Trebune → adjacency to "tribune" (§8.3 + §15).
+- Trombek → Slavic surname shape (§6 + §8.4).
+- Ploskem → Slavic root "płaski" + personal-name shape (§8.4/§8.5).
+
+Surviving to registry-first screen (n=7): Fromock, Plunep, Krumel, Spomel,
+Grebock, Klavune, Frunep.
+
+## 10. Trademark / Registry Evidence and Limitations
+- Authoritative registry access (DJKI/PDKI, USPTO TSDR, EUIPO eSearch, WIPO
+  Global Brand DB) UNAVAILABLE via direct API in execution environment.
+- All hits labelled SEARCH-OBSERVED / PARTIAL; none labelled VERIFIED or
+  CLEARED. All surviving items → REQUIRES PROFESSIONAL CLEARANCE.
+
+Public-web registry-adjacent findings:
+- Spomel → active EU industrial identity: SPOMEL S.P. (Odlewnia Żeliwa i Metali
+  Nieżelaznych, Lębork, Poland, est. 1950). SEARCH-OBSERVED conflict.
+- Krumel → Krumel Grain & Storage Inc (US FMCSA/SAFER record).
+  SEARCH-OBSERVED.
+- Grebock → GREBOCK HOLDINGS LIMITED (New Zealand, registered 1954, status
+  Deleted; historical NZ Gazette 1986 trail). SEARCH-OBSERVED.
+- Frunep → active pharma brand (see Pharma section).
+- Fromock, Plunep, Klavune → no direct trademark result; PARTIAL (absence
+  of hit in public web ≠ availability).
+
+## 11. Pharma / Clinical Evidence
+- FRUNEP → HARD KILL. FRUNEP is an active furosemide (diuretic) tablet brand
+  marketed by UniMed UniHealth Pharmaceuticals Ltd (Bangladesh) and National
+  Drug Company Ltd; listed in Bangladesh National Formulary 2019.
+- KRUMEL → pharma-adjacent citation trail: "Krumel, K.L." appears as cited
+  author in methylcellulose/hydroxyalkylcellulose pharma literature (e.g.,
+  Handbook of Water-Soluble Gums and Resins). Reinforces §9 rejection.
+- Fromock, Plunep, Klavune, Spomel, Grebock: no direct pharma hit
+  (SEARCH-OBSERVED).
+
+## 12. Software / Ecosystem Evidence
+- Fromock → active printables.com user handle @Fromock_122991 (3D-printing
+  community, multiple published STL models). MINOR-ACTIVE identity.
+- Krumel → GitHub user @akrumel active.
+- Klavune → no direct github/npm/pypi hit; Klav/Klavun-family surname active
+  across LinkedIn / IMDb / Smithsonian Archives / SoundCloud.
+- Plunep → no ecosystem hit (SEARCH-OBSERVED clean).
+- Others → no relevant ecosystem hit.
+
+## 13. Cross-Language Evidence
+- Klavune → active grammatical form in Vlach Romani (Slovakia; Roma Civil
+  Monitoring Report 2024: "FOKUS PE KLAVUNE PROBLEMURĂ SAVEN AFEKTIN E
+  ROMEN"). Real cross-language collision (§10). HARD KILL.
+- Spomel → Polish industrial-company toponym (Lębork).
+- Grebock → Slavic surname stem (Grebocki / Grewock family; MyHeritage,
+  Forebears).
+- Others → no direct cross-language conflict observed in
+  ID/EN/ES/PT/FR/IT/DE/NL/tr/ar/hi/bn/ja/ko/zh corpora reachable via public
+  web. Coverage is INCOMPLETE — professional linguistic screen recommended
+  for any future candidate.
+
+## 14. Domain / Acquisition Evidence
+Not run to WHOIS. No WHOIS tool bound. No live availability claim made.
+Domain observation on survivors deferred because all survivors were
+eliminated on hard gates before domain review would have material effect
+(§20 fallback: "NOT PERFORMED — CANDIDATES ELIMINATED EARLIER").
+
+## 15. Phonetic Evidence (ID + EN)
+- Fromock → begins with English preposition "from"; utterances "Built on
+  Fromock" / "Fromock SDK" parse aurally as "built on from ock" — severe
+  word-blur to /frʌm/. Hearing→spelling instability.
+- Plunep → "-nep" tail dictates poorly in EN/ID (misheard as -nip/-nap/
+  -nept); "Plun-" onset in an onomatopoeic register (plunge/plump/plunk).
+- Klavune (before cross-language kill) → EN /klə-VYOON/ vs ID /kla-VU-nə/
+  divergence; person-blur to Klav/Klavun surname.
+
+## 16. Infrastructure / Master-Brand Evidence
+Not fully executed on Fromock/Plunep — both failed earlier phonetic /
+5-second gate. "Powered by Fromock" and "Powered by Plunep" fail credibility
+as durable infrastructure identity.
+
+## 17. Primary Association
+- Krumel → PERSON (surname).
+- Spomel → COMPANY (Polish foundry).
+- Grebock → PERSON / DEFUNCT COMPANY (surname + NZ holding co).
+- Frunep → MEDICINE (diuretic tablet).
+- Trebune → PLACE/ROLE (tribune adjacency).
+- Trombek → PERSON (Slavic surname shape).
+- Ploskem → PERSON / LANGUAGE ROOT (Slavic).
+- Fromock → GENERIC PHRASE (English "from" + "ock") / MINOR PERSON HANDLE.
+- Plunep → ONOMATOPOEIC / CHILDISH.
+- Klavune → PERSON (Klavun surname) + LANGUAGE FORM (Romani).
+
+None classified as MOSTLY CLEAN or CLEAN for master-brand infrastructure use.
+
+## 18. Five-Second Test
+No candidate scored MOSTLY CLEAN. Dominant impressions were
+person / company / medicine / generic-phrase / onomatopoeic — never
+"software/platform" or "abstract master brand."
+
+## 19. Adversarial Destruction
+All 10 candidates destroyed. No rescue, respell, or mutation attempted
+(§19 hard rule honored). Terminal learning: even upstream
+clearance-constrained generation, at n=10, on public-web evidence,
+does not close the trademark/pharma/surname collision space for
+short coined marks.
+
+## 20. Professional Clearance State
+NOT REACHED. Zero candidates advanced to counsel-ready packet.
+Professional clearance was NOT engaged; no legal conclusion is claimed.
+
+## 21. Final Decision
+**A. NO BRAND LOCK.**
+
+## 22. Strategic Learning
+1. Registry-first upstream constraint mapping does NOT by itself remove
+   the surname / pharma / active-company collision space for short (6–10
+   letter) coined marks under public-web evidence.
+2. The persistent binding constraint remains AUTHORITATIVE REGISTRY /
+   PROFESSIONAL CLEARANCE ACCESS — not creative morphology.
+3. Track A (public acquisition surfaces without paid brokerage) remains
+   informationally insufficient for asset acquisition.
+4. The Cycle 001–010 → 011 pattern demonstrates the naming problem is
+   ACCESS-BOUND, not CREATIVITY-BOUND. Further generative cycles at the
+   same access level will reproduce the same terminal state.
+
+## 23. Next-Cycle Trigger (per §19)
+Do NOT run Cycle 012 as another broad creative naming cycle. Trigger one
+or more of:
+1. IP counsel engagement (ID and/or US/EU) with authoritative DJKI/PDKI,
+   USPTO, EUIPO, WIPO access.
+2. Paid brokerage / off-market acquisition search for existing brand
+   assets.
+3. Deliberate naming pause under a working codename; ship product;
+   revisit brand only after professional access is procured.
+
+## 24. GitHub Write-Back Status
+LIMITATION — NO REPO WRITE ACCESS.
+No GitHub-bound write tool in execution environment. This summary was
+delivered as an in-session artifact for manual placement at
+`docs/AI_AGENT_INFRASTRUCTURE_BRAND_NAMING_CYCLE_011_SUMMARY.md`.
+Canonical extension `.md`.
+
+## 25. Commit SHA
+NOT APPLICABLE — no commit performed. No SHA fabricated.
