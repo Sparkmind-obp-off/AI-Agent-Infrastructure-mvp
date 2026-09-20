@@ -824,7 +824,7 @@ List the most important terminal conflicts discovered.
 List what could not be verified.
 
 ### Repository
-State whether the canonical report was written and provide the real commit SHA only if available.
+State whether the Cycle Summary Artifact was written and provide the real commit SHA only if available.
 
 ### Next Action
 If no survivor, define the materially different Cycle 004 trigger.
