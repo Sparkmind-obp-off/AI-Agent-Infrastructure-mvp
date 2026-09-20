@@ -1088,41 +1088,45 @@ If a historical candidate is reconsidered, explicitly state:
 
 ---
 
-# 30. REQUIRED CANONICAL REPORT
+# 30. REQUIRED CYCLE SUMMARY ARTIFACTS
 
-For every cycle create:
+Do NOT create a long canonical cycle report by default.
 
-`docs/AI_AGENT_INFRASTRUCTURE_BRAND_NAMING_CYCLE_[NNN].md`
+The naming program should produce lightweight, reusable **Cycle Summary Artifacts** instead of a large narrative report.
 
-The report must contain:
+For each completed cycle create at minimum:
 
-1. Executive Summary
-2. Cycle Objective
-3. Repository Audit
-4. Repository-Derived Naming Brief
-5. Historical Cycle State
-6. Methodological Difference
-7. Candidate Generation
-8. Rapid Elimination
-9. Deep Research
-10. Domain Evidence
-11. Trademark / Registry Evidence
-12. Software / Ecosystem Evidence
-13. Linguistic / Phonetic Evidence
-14. Primary Association Test
-15. Infrastructure Credibility Test
-16. Brand Architecture
-17. Adversarial Review
-18. Finalists
-19. Comparative Matrix
-20. Strategic Lock Gate
-21. Decision Branch
-22. Evidence Gaps
-23. Next-Cycle Trigger
-24. Strategic Learning
-25. Final Decision
+`docs/AI_AGENT_INFRASTRUCTURE_BRAND_NAMING_CYCLE_[NNN]_SUMMARY.md`
 
-If professional clearance is pending, include a complete professional handoff packet.
+The summary must contain only the decision-critical information:
+
+1. Cycle / Date
+2. Status
+3. Objective
+4. Methodological Shift
+5. Historical Learning Used
+6. Candidate Count / Funnel
+7. Important Survivors or Finalists
+8. Main Terminal Collisions
+9. Evidence Gaps / Unverified Items
+10. Professional Clearance State
+11. Strategic Learning
+12. Next-Cycle Trigger
+13. Repository / Commit Status
+
+If the evidence is too large for one summary, optionally create a second compact artifact:
+
+`docs/AI_AGENT_INFRASTRUCTURE_BRAND_NAMING_CYCLE_[NNN]_EVIDENCE.md`
+
+This second file is only for concise evidence tables, source references, and material collision records. It is NOT a full narrative report.
+
+If professional clearance is pending, include only the concise clearance handoff essentials in the summary or evidence artifact. Do not create a long legal-style packet unless explicitly requested.
+
+### Output principle
+
+**Research deeply → summarize aggressively → preserve decision-critical evidence.**
+
+Historical cycle reports already present in the repository remain immutable evidence. Do not rewrite them merely to conform to this new output format.
 
 ---
 
@@ -1174,38 +1178,46 @@ Do not fabricate evidence to continue.
 
 Do not modify application source code during naming research.
 
-Write only naming artifacts unless a repository documentation index explicitly needs a safe update.
+Write only the required naming summary artifacts unless a repository documentation index explicitly needs a safe update.
 
-Each completed cycle must be committed.
+Each completed cycle should be committed.
 
-Commit message format:
+Preferred commit message:
 
-**docs: add AI Agent Infrastructure brand naming Cycle [NNN]**
+**docs: add AI Agent Infrastructure brand naming Cycle [NNN] summary**
 
 After writing:
 
-1. verify file contents;
-2. verify commit;
-3. report commit SHA;
+1. verify the summary artifact(s);
+2. verify the commit;
+3. report the actual commit SHA;
 4. report final cycle status;
 5. report next trigger.
 
 Never claim a commit that was not actually performed.
 
+Do not create a large canonical narrative report unless explicitly requested.
+
 ---
 
-# 34. CLEAN ARTIFACT RULE
+# 34. CLEAN SUMMARY ARTIFACT RULE
 
-Canonical reports must contain:
+Cycle summary artifacts must be concise and decision-useful.
 
-- evidence
-- sources
-- dates
-- candidate history
-- elimination logic
+Include:
+
+- status
+- objective
+- methodology shift
+- candidate funnel
+- material evidence
+- important collisions
+- finalists/survivors if any
+- evidence gaps
+- clearance state
 - decision
-- limitations
 - next action
+- actual commit status where applicable
 
 Do NOT include:
 
@@ -1217,6 +1229,7 @@ Do NOT include:
 - fake commits
 - unsupported legal conclusions
 - duplicated prompt text
+- long narrative repetition of the master prompt
 
 ---
 
@@ -1245,12 +1258,13 @@ Execute in this exact order:
 19. Strategic Lock Gate
 20. Professional Clearance Gate
 21. Final Decision
-22. Canonical Cycle Report
+22. Cycle Summary Artifact Generation
 23. Repository Write-Back
 24. Commit Verification
 25. Next-Cycle Trigger
 
 Do not jump from candidate generation directly to brand lock.
+Do not spend execution time turning the final result into a long report.
 
 ---
 
