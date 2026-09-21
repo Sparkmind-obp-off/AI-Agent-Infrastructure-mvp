@@ -1,0 +1,29 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "vestren-workbench",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "pages_build_output_dir": "./dist",
+  "vars": {
+    "APP_ENV": "production",
+    "EXECUTION_PROVIDER": "mock",
+    "ARTIFACT_STORAGE": "r2",
+    "MAX_TOOL_CALLS": "3",
+    "MAX_ITERATIONS": "4",
+    "EXECUTION_TIMEOUT_MS": "15000",
+    "MAX_ARTIFACT_BYTES": "65536"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "vestren-workbench-production",
+      "database_id": "21921969-a688-4e56-9662-17d0bf34e657"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "ARTIFACTS",
+      "bucket_name": "vestren-workbench-artifacts"
+    }
+  ]
+}

@@ -1,54 +1,137 @@
-# VESTREN
+# VESTREN Workbench
 
-Vestren is an AI-agent execution infrastructure platform: a reusable runtime for building agents that can understand requests, plan, call tools, execute work, verify results, persist state, and produce auditable outcomes.
+Vestren is the execution layer for reliable AI agents. This repository now contains a focused prototype proving the loop:
 
-## Architecture status
+**Intent → Context → Plan → Tool → Execute → Verify → Artifact → Memory → Audit**
 
-Technical baseline is locked.
+## Prototype status
 
-- Frontend: React + TypeScript
-- Edge/API: Cloudflare Workers + Hono
-- Agent runtime: Cloudflare Agents SDK
-- State: Durable Objects + SQLite
-- Database: Cloudflare D1
-- Object storage: Cloudflare R2
-- Default AI: Cloudflare Workers AI
-- AI routing/observability: Cloudflare AI Gateway
-- Tools: MCP + provider adapters
-- Execution sandbox: E2B
-- Provider model: BYOK / adapter-first
-- VPS/Kubernetes/Supabase: out of MVP scope
-- Brand/name: **VESTREN — FINAL BRAND LOCK**
+The canonical CSV analysis vertical slice is implemented and locally verified. A user can start an authenticated demo session, run a bounded agent task against a deterministic CSV fixture, observe the plan and MCP-style tool activity, execute through an `ExecutionProvider`, verify three findings, persist state/audit records in D1, store the report in R2, and download the artifact.
 
-## Brand & Naming Status
+The deployed demo intentionally uses the explicit `mock-e2b` adapter because no `E2B_API_KEY` is configured. The real `E2BProvider` implementation is present and fails closed when selected without a credential.
 
-**VESTREN — FINAL BRAND LOCK**
+## Completed features
 
-Vestren is the approved master brand for this project. Naming exploration is closed.
+- Professional React + TypeScript Workbench UI
+- Hono API on Cloudflare Pages Functions
+- Signed, short-lived demo authentication boundary
+- Tenant/project/session-scoped request handling
+- Canonical CSV task and deterministic fixture
+- Visible plan, execution activity, findings, verification, artifacts, and audit trail
+- Safe read-only `ToolProvider` / MCP adapter boundary
+- Stable `ExecutionProvider` contract with E2B and deterministic mock-E2B adapters
+- Execution timeout, tool-call, iteration, sandbox-lifetime, artifact-size, and daily-run indicators
+- Structured, secret-redacted audit events
+- D1 persistence for sessions, execution records, artifacts, and audit index
+- R2 artifact storage with authenticated download route
+- Cloudflare Agents SDK Durable Object session class (`src/server/agent-worker.ts`) ready for cross-script deployment
+- Contract, authorization-boundary, guardrail, and end-to-end runtime tests
 
-Canonical standard:
-`docs/42_AI_AGENT_INFRASTRUCTURE_STRATEGIC_BRAND_LOCK_STANDARD.md`
+## Functional URIs
 
-Final brand decision:
-`docs/VESTREN_FINAL_BRAND_LOCK.md`
+| Method | URI | Purpose |
+|---|---|---|
+| `GET` | `/` | Vestren Workbench UI |
+| `GET` | `/api/health` | Runtime and provider health |
+| `POST` | `/api/auth/demo` | Issue a one-hour signed demo token |
+| `POST` | `/api/runs` | Execute the CSV vertical slice; body: `{ sessionId: UUID, goal: string }` |
+| `GET` | `/api/sessions/:id` | Reload a tenant-scoped persisted session and audit trail |
+| `GET` | `/api/artifacts/:key` | Download an authenticated report artifact |
 
-Final brand lock master system prompt:
-`docs/VESTREN_FINAL_BRAND_LOCK_MASTER_SYSTEM_PROMPT.md`
+All routes except health and demo-token issuance require `Authorization: Bearer <token>`.
 
-Historical Cycle 020 execution artifact (canonical `.md.md`):
-`docs/AI_AGENT_INFRASTRUCTURE_BRAND_NAMING_CYCLE_020_SUMMARY.md.md`
+## Architecture and data
 
-The internal brand lock is distinct from formal legal clearance. Professional trademark/legal review remains a separate workstream. Unrelated uses are not automatic blockers; reopening requires material new evidence of a same-category legal or commercial conflict.
+- **Frontend:** React 19, TypeScript, Vite
+- **Control plane:** Cloudflare Pages Functions + Hono
+- **Agent state:** D1 in the deployed prototype; Cloudflare Agents SDK Durable Object class is prepared for a dedicated cross-script binding
+- **Application records:** Cloudflare D1
+- **Artifacts:** Cloudflare R2, with D1 response fallback for local/unit contexts
+- **Tool boundary:** `ToolProvider` with a safe MCP-style read tool
+- **Execution boundary:** `ExecutionProvider` → `E2BProvider` or explicit `MockE2BProvider`
+- **AI planning:** deterministic bounded fallback for the credential-free demo; provider-neutral contracts preserve the Workers AI/BYOK path
 
-## Core rule
+D1 tables: `sessions`, `executions`, `artifacts`, and `audit_events`. The migration is in `migrations/0001_initial.sql`.
 
-Free-capability-first, Cloudflare-preferred:
-1. Use Cloudflare when the required capability is genuinely available on the free tier for the MVP.
-2. Do not force a paid Cloudflare capability into the MVP.
-3. Use an external provider when it is the viable free/API-accessible option.
-4. Keep every external dependency behind an adapter.
-5. Premium providers remain optional/BYOK.
+## User guide
 
-## Purpose
+1. Open the Workbench.
+2. Review the pre-filled CSV analysis request and scoped fixture.
+3. Select **Run agent**.
+4. Inspect plan completion, tool/execution events, usage limits, findings, and verification checks.
+5. Open **Audit trail** for the full event history.
+6. Download `vestren-csv-report.md` from the Artifacts panel.
 
-Vestren is infrastructure for building and operating AI agents: chat is an interface, the agent is orchestration, MCP/tools are connectivity, memory/state persists context, E2B provides isolated execution, and deployment runs on the edge.
+## Local development
+
+```bash
+npm install
+printf 'AUTH_SIGNING_SECRET=<local-random-secret>\n' > .dev.vars
+npm run typecheck
+npm test
+npm run build
+npx wrangler d1 migrations apply vestren-workbench-production --local
+pm2 start ecosystem.config.cjs
+curl http://localhost:3000/api/health
+```
+
+Do not commit `.dev.vars`.
+
+## Environment variables
+
+Names only:
+
+- `AUTH_SIGNING_SECRET` — required server-side secret
+- `EXECUTION_PROVIDER` — `mock` for deterministic demo or `e2b`
+- `E2B_API_KEY` — required only when `EXECUTION_PROVIDER=e2b`
+- `MAX_TOOL_CALLS`
+- `MAX_ITERATIONS`
+- `EXECUTION_TIMEOUT_MS`
+- `MAX_ARTIFACT_BYTES`
+
+No provider key is exposed to the browser or written to audit payloads.
+
+## Testing
+
+```bash
+npm run typecheck
+npm test
+npm run build
+npm audit --omit=dev
+```
+
+Tests cover the provider contract, full request-to-artifact flow, fail-closed authorization, timeout, artifact-size guardrails, verification, and structured audit output.
+
+## Deployment
+
+- **Platform:** Cloudflare Pages via Wrangler BYOK
+- **Cloudflare project:** `vestren-workbench`
+- **D1:** `vestren-workbench-production`
+- **R2:** `vestren-workbench-artifacts`
+- **Production URL:** populated after verified deployment
+- **GitHub:** https://github.com/Sparkmind-obp-off/vestren
+
+Apply migrations and secrets before deploying:
+
+```bash
+npx wrangler d1 migrations apply vestren-workbench-production --remote
+openssl rand -hex 32 | npx wrangler pages secret put AUTH_SIGNING_SECRET --project-name vestren-workbench
+npm run build
+npx wrangler pages deploy dist --project-name vestren-workbench
+```
+
+## Not yet implemented / known production gaps
+
+- A real E2B call requires an owner-provided `E2B_API_KEY`; current demo runs the contract-compatible deterministic adapter.
+- The Cloudflare Agents SDK Durable Object class must be deployed as a dedicated Worker and bound cross-script to Pages before Durable Objects replace D1 as the live session-state owner.
+- Workers AI / AI Gateway planning is not enabled in the credential-free deterministic slice.
+- Real CSV upload and MIME/content scanning are not enabled; the UI and provider boundaries are ready for an R2-backed upload flow.
+- Daily/monthly quotas are visible but require a per-tenant aggregation query before they become hard account-level limits.
+
+## Recommended next steps
+
+1. Configure `E2B_API_KEY`, switch `EXECUTION_PROVIDER=e2b`, and run the integration test.
+2. Deploy and bind `VestrenSessionAgent` as the durable session owner.
+3. Add signed R2 upload URLs and CSV validation/scanning.
+4. Add Workers AI planning behind `LLMProvider`, optionally routed through AI Gateway.
+5. Replace demo authentication with the selected production identity provider.

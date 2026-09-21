@@ -1,0 +1,1 @@
+export const SAMPLE_CSV = `region,product,revenue,units,satisfaction\nNorth,Atlas,18400,230,4.8\nSouth,Atlas,16900,205,4.6\nWest,Atlas,19700,241,4.9\nNorth,Beacon,11200,190,4.1\nSouth,Beacon,9800,176,3.9\nWest,Beacon,12400,201,4.2\nNorth,Core,14300,150,4.5\nSouth,Core,13800,147,4.4\nWest,Core,15500,161,4.7\n`
