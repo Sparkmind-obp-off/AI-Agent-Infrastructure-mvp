@@ -194,6 +194,116 @@ OrChat
 Orchat
 ORCHAT
 
+
+
+## 6A. PARALLEL NAMING LANE — SIMPLE ONE-WORD MASTER MARKS
+
+IMPORTANT: Cycle 019 MUST ALSO test a dedicated SIMPLE ONE-WORD naming lane.
+
+The user explicitly requires names that are:
+- one word only
+- simple
+- short or moderately short
+- easy to pronounce, hear, and spell
+- natural in Indonesian and English
+- globally usable
+- premium but not pretentious
+- neutral
+- not obviously technical or AI-related
+- capable of becoming a durable master brand
+
+This lane is NOT permission to return to the failed Cycle 015–017 pseudo-word pattern.
+
+### ONE-WORD GENERATION RULE
+
+Prefer candidates derived from:
+1. real dictionary words with low commercial saturation;
+2. uncommon but legitimate words;
+3. natural semantic abstractions;
+4. simple real-word transformations only when the resulting mark is independently natural;
+5. controlled single-word compounds that are actually used as lexical words;
+6. very restrained coined words with recognizable morphemes, only when they sound like a natural word rather than a random startup string.
+
+Target: at least 100 one-word candidates, independently generated from the multi-word lane.
+
+### DO NOT GENERATE
+
+No:
+- Nulevi/Rimapu-style open-CV strings
+- pseudo-Latin, pseudo-Nordic, or pseudo-Germanic
+- random vowel-consonant sequences
+- meaningless 4–9 letter startup strings
+- suffix patterns such as vex, yvex, yn, ax, ex, ix, ox, eron, erion, ion
+- forced Q/X/Z-heavy constructions
+- difficult consonant clusters
+- surname-like inventions
+- pharma-like morphology
+- fantasy-coded names
+- spelling mutations of rejected candidates
+- concatenations of rejected roots
+
+### ONE-WORD TEST
+
+Every one-word candidate must pass:
+
+HEARING TEST: someone hearing it once should have a reasonable chance of reconstructing the spelling.
+
+SPEAKING TEST: an Indonesian and English speaker should be able to say it without explanation.
+
+MEANING TEST: it must not carry major unwanted meaning in a relevant market.
+
+IDENTITY TEST: search exact word plus company/software/product/infrastructure/developer/API/SDK/GitHub/npm/PyPI/crates/Docker/MCP.
+
+MASTER-BRAND TEST:
+[NAME] Runtime
+[NAME] SDK
+[NAME] API
+[NAME] Gateway
+[NAME] Cloud
+[NAME] Console
+[NAME] Enterprise
+[NAME] Security
+[NAME] Observability
+
+The one-word mark must remain credible as the parent brand.
+
+### ONE-WORD SURVIVAL STANDARD
+
+A one-word candidate is NOT stronger merely because it is short.
+
+Reject it if:
+- the common meaning dominates;
+- a major company already owns the identity;
+- a major software/developer identity dominates;
+- it is a surname/geography/person;
+- it is medical/pharma;
+- it is consumer-product dominated;
+- it has major linguistic baggage;
+- spelling is ambiguous;
+- pronunciation is unstable;
+- it sounds like a feature rather than a company;
+- it cannot support infrastructure product extensions;
+- it appears clean only because the search was shallow.
+
+The one-word lane and hybrid lane must be evaluated independently.
+
+Do NOT rank the two lanes against each other.
+
+The final summary must separately report:
+- one-word candidates generated
+- one-word candidates early rejected
+- one-word candidates deep-screened
+- one-word terminal rejections
+- one-word conditional survivors
+- hybrid candidates generated
+- hybrid candidates screened
+- hybrid survivors
+
+If both lanes produce survivors, preserve each as:
+SURVIVOR — PROFESSIONAL CLEARANCE REQUIRED
+
+Do not choose between them.
+
 ## 7. CANDIDATE GENERATION
 
 Generate at least 150 genuinely new candidates.
