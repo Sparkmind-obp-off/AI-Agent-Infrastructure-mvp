@@ -153,7 +153,7 @@ This summary is the only new naming document required by Cycle 020. No applicati
 
 **Initial summary commit:** `d5b9d30e7af9b4b4e57167448139cb424a711112`  
 
-The summary was subsequently amended and pushed to `origin/main`; the final verification commit is reported in the execution record and can be independently checked with `git log --follow`.
+The summary was subsequently amended and pushed to `origin/main`. The verified repository head at that stage was `56c9057bfaa590947582706701d1b0633931e539`; this metadata-only clarification is committed separately and the current head is verified below.
 
 ## References
 
