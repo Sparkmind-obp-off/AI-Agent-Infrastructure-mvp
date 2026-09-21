@@ -15,4 +15,4 @@ Deployment environments:
 
 Secrets are injected through deployment configuration, never committed.
 
-Repository naming is temporary and may be changed after brand lock.
+Repository and product identity are now **VESTREN**; the naming phase is closed.
