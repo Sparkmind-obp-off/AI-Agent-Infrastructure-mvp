@@ -1,7 +1,7 @@
-# Roadmap
+# Vestren Roadmap
 
 ## Phase 0 — Foundation
-Architecture, contracts, security model, provider policy, repository documentation.
+Architecture, contracts, security model, provider policy, product documentation and final brand lock.
 
 ## Phase 1 — Runtime
 Workers + Hono + agent runtime + state + D1.
@@ -21,4 +21,4 @@ Real use cases, reliability testing, free-tier measurement, cost validation.
 ## Phase 6 — Expansion
 BYOK providers, additional execution providers, billing and production hardening.
 
-Naming/brand lock happens after the technical foundation reaches a stable state.
+The Vestren brand is final. No further naming cycle is part of the roadmap.
