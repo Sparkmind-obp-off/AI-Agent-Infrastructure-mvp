@@ -18,7 +18,39 @@ Technical baseline is locked before product naming.
 - Execution sandbox: E2B
 - Provider model: BYOK / adapter-first
 - VPS/Kubernetes/Supabase: out of MVP scope
-- Brand/name: intentionally NOT locked
+- Brand/name: **NOT YET LOCKED — STRATEGIC NAMING ACTIVE**
+
+## Naming status
+
+The naming methodology has been deliberately simplified and reconceived.
+
+Canonical standard:
+`docs/42_AI_AGENT_INFRASTRUCTURE_STRATEGIC_BRAND_LOCK_STANDARD.md`
+
+Active cycle:
+`docs/41_AI_AGENT_INFRASTRUCTURE_BRAND_NAMING_CYCLE_020_MANUS_EXECUTION_PROMPT.md`
+
+### Strategic naming principle
+
+The objective is **not** to find a name that has never appeared anywhere.
+
+The objective is to find a **premium, simple, modern, brandable, sufficiently distinctive, commercially defensible whole mark** for AI-agent infrastructure.
+
+Collision research remains mandatory, but an incidental use or occupied component is not automatically a terminal rejection. Evidence must be contextualized by:
+
+- whole-mark identity;
+- category proximity;
+- commercial strength;
+- primary association;
+- pronunciation;
+- domain/social practicality;
+- trademark exposure.
+
+Strategic survivor status means:
+
+**STRATEGIC SURVIVOR — PROFESSIONAL CLEARANCE REQUIRED**
+
+It is not legal clearance.
 
 ## Core rule
 
