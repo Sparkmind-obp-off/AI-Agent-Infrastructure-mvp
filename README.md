@@ -18,17 +18,23 @@ Technical baseline is locked before product naming.
 - Execution sandbox: E2B
 - Provider model: BYOK / adapter-first
 - VPS/Kubernetes/Supabase: out of MVP scope
-- Brand/name: **NOT YET LOCKED — STRATEGIC NAMING ACTIVE**
+- Brand/name: **VESTREN — FINAL BRAND LOCK**
 
-## Naming status
+## Brand & Naming Status
 
 The naming methodology has been deliberately simplified and reconceived.
 
 Canonical standard:
 `docs/42_AI_AGENT_INFRASTRUCTURE_STRATEGIC_BRAND_LOCK_STANDARD.md`
 
-Active cycle:
-`docs/41_AI_AGENT_INFRASTRUCTURE_BRAND_NAMING_CYCLE_020_MANUS_EXECUTION_PROMPT.md`
+Final brand decision:
+`docs/VESTREN_FINAL_BRAND_LOCK.md`
+
+Final brand lock master system prompt:
+`docs/VESTREN_FINAL_BRAND_LOCK_MASTER_SYSTEM_PROMPT.md`
+
+Historical Cycle 020 execution artifact (canonical `.md.md`):
+`docs/AI_AGENT_INFRASTRUCTURE_BRAND_NAMING_CYCLE_020_SUMMARY.md.md`
 
 ### Strategic naming principle
 
@@ -46,11 +52,13 @@ Collision research remains mandatory, but an incidental use or occupied componen
 - domain/social practicality;
 - trademark exposure.
 
-Strategic survivor status means:
+Final status:
 
-**STRATEGIC SURVIVOR — PROFESSIONAL CLEARANCE REQUIRED**
+**VESTREN — FINAL BRAND LOCK**
 
-It is not legal clearance.
+Naming exploration is closed. Vestren is the approved master brand for the AI Agent Infrastructure project.
+
+This internal brand lock is distinct from formal legal clearance. Professional trademark/legal review remains a separate workstream. Unrelated fashion, social, surname, historical, or place-name occurrences are not automatic blockers; reopening requires material new evidence of a same-category legal or commercial conflict.
 
 ## Core rule
 
