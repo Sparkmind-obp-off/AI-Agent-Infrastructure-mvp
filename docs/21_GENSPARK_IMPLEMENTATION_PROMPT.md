@@ -1,6 +1,6 @@
-# Genspark Implementation Prompt
+# Genspark Implementation Prompt — Vestren
 
-Implement this repository as an AI Agent Infrastructure MVP according to every document in /docs.
+Implement the **Vestren** repository as the Vestren AI-agent execution infrastructure MVP according to the active product and architecture documents in /docs.
 
 ## Locked architecture
 - React + TypeScript frontend
@@ -16,7 +16,8 @@ Implement this repository as an AI Agent Infrastructure MVP according to every d
 - Provider-agnostic/BYOK architecture
 
 ## Non-negotiable rules
-- Read all /docs before coding.
+- Read the active architecture/product/security docs before coding.
+- Keep historical naming artifacts unchanged; they are archival records.
 - Keep vendor-specific code inside adapters.
 - Never commit or expose secrets.
 - Validate environment configuration.
@@ -24,7 +25,7 @@ Implement this repository as an AI Agent Infrastructure MVP according to every d
 - Add tests for contracts, authorization, execution limits and failure paths.
 - Add health checks and local-development instructions.
 - Keep MVP scope small and executable.
-- Do not rename the repository or introduce a brand.
+- **VESTREN is the final brand. Do not rename the repository, product, or introduce a replacement brand.**
 - Do not add paid-only infrastructure merely to satisfy a feature.
 - If a capability is paid on Cloudflare Free, preserve the adapter boundary and use the approved external provider instead.
 - Do not make OpenAI, Anthropic, VPS, Kubernetes, Supabase or LangChain mandatory.
