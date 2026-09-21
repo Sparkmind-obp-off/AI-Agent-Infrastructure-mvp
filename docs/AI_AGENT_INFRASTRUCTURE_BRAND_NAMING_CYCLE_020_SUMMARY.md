@@ -151,7 +151,9 @@ This summary is the only new naming document required by Cycle 020. No applicati
 
 ## 17. Actual commit SHA
 
-**d5b9d30e7af9b4b4e57167448139cb424a711112** This field will be replaced with the verified commit SHA after the summary is committed and the committed file is fetched and checked.
+**Initial summary commit:** `d5b9d30e7af9b4b4e57167448139cb424a711112`  
+
+The summary was subsequently amended and pushed to `origin/main`; the final verification commit is reported in the execution record and can be independently checked with `git log --follow`.
 
 ## References
 
