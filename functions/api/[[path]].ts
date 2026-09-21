@@ -1,8 +1,8 @@
 import { Hono } from 'hono'
 import { z } from 'zod'
-import { authorize, issueDemoToken } from '../src/server/auth'
-import type { Env } from '../src/server/config'
-import { runCsvAgent } from '../src/server/runtime'
+import { authorize, issueDemoToken } from '../../src/server/auth'
+import type { Env } from '../../src/server/config'
+import { runCsvAgent } from '../../src/server/runtime'
 
 const app = new Hono<{ Bindings: Env }>()
 const runSchema = z.object({ sessionId: z.string().uuid(), goal: z.string().min(10).max(500) })
