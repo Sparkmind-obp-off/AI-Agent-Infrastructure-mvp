@@ -151,13 +151,41 @@ It is a real LLM-powered planner that can reliably produce a validated plan for 
 
 ---
 
-# 5. LLM PROVIDER DECISION
+# 5. LLM PROVIDER DECISION — CLOUDFLARE WORKERS AI FIRST
 
-Inspect the repository and current documented provider direction before selecting implementation details.
+For Phase 3, the primary real LLM provider is **Cloudflare Workers AI through the existing Worker/Pages Function AI binding**.
 
-Existing architecture identifies **Workers AI as the default future model path**, with AI Gateway where applicable and provider adapters for external/BYOK models.
+Canonical runtime path:
 
-Unless the actual repository contains a concrete, intentional provider choice that is already production-ready, prefer the smallest provider that fits the existing Cloudflare architecture.
+**Vestren Worker/Pages Function → `env.AI` → Workers AI model**
+
+Cloudflare documents the AI binding as the native Worker integration and exposes it through `env.AI.run()`. The binding is configured in Wrangler or the Cloudflare dashboard; it is not an application API key that should be copied into source code or a custom secret variable. citeturn0search0turn0search7
+
+Implementation target:
+
+**`LLMProvider` → `WorkersAIProvider` → `env.AI.run(model, input)`**
+
+The exact model must be selected from the currently supported Workers AI model catalog at implementation time. Do not hardcode an obsolete model name from this prompt. Prefer a currently supported instruction-following model suitable for structured planning and record the exact selected model in the final report/configuration.
+
+### AI Gateway
+
+AI Gateway may be used if the repository/runtime configuration benefits from its observability, routing, or third-party model capabilities. It is optional for the first vertical slice, not a reason to delay Phase 3. citeturn0search2
+
+### External providers
+
+Do not implement Groq, OpenAI, Anthropic, or other external production providers in the first Phase 3 vertical slice unless the repository already requires one for a concrete reason.
+
+The provider abstraction must remain replaceable so a later adapter can be added without changing agent orchestration:
+
+**`LLMProvider` → `GroqProvider` → `env.GROQ_API_KEY`**
+
+or
+
+**`LLMProvider` → `OpenAIProvider` → `env.OPENAI_API_KEY`**
+
+External provider credentials must be stored as Cloudflare Worker Secrets, never in `vars`, source code, prompts, GitHub, logs, or frontend bundles. citeturn0search1turn0search10
+
+### Non-negotiable provider rule
 
 Do not add multiple production providers merely for feature breadth.
 
@@ -166,6 +194,8 @@ The implementation must make the provider replaceable.
 The provider-specific SDK/API must remain inside an adapter.
 
 The rest of Vestren must depend on an internal contract, not vendor-specific objects.
+
+**Primary Phase 3 provider: Workers AI.**
 
 ---
 
@@ -477,6 +507,25 @@ Do not silently switch to a paid provider after quota exhaustion.
 
 # 17. SECRET MANAGEMENT
 
+### Primary Workers AI path
+
+When using the native Workers AI binding, do **not** invent or require a `WORKERS_AI_API_KEY` secret for the Worker runtime.
+
+Expected production capability:
+
+**Wrangler/Cloudflare configuration → AI binding named `AI` → `env.AI`**
+
+Cloudflare's binding model supplies the Worker with access to the bound resource. citeturn0search0turn0search9
+
+The implementation must inspect the actual Vestren deployment configuration and add the binding using the repository's existing Wrangler/Pages architecture rather than creating a parallel AI service.
+
+For local development, follow the repository's Cloudflare environment conventions. Do not commit secrets. Cloudflare supports local secret values through `.dev.vars` or `.env`, while production secrets should be configured as Worker Secrets. citeturn0search1turn0search4
+
+### External provider path
+
+If a later provider such as Groq is intentionally enabled, its credential belongs in a Cloudflare Worker Secret such as `GROQ_API_KEY`, and the runtime accesses it through `env.GROQ_API_KEY`. It must not be placed in the frontend or exposed to Genspark.
+
+Provider credentials must never appear in:
 Provider credentials must never appear in:
 
 - frontend source;
@@ -825,16 +874,41 @@ Do not persist full prompts or raw model output unless there is a concrete produ
 
 # 30. DEPLOYMENT
 
-Separate:
+### Workers AI configuration gate
 
+Before claiming a real Workers AI integration, verify that the deployed runtime has an AI binding available to the actual Worker/Pages Function.
+
+Expected configuration concept:
+
+```jsonc
+{
+  "ai": {
+    "binding": "AI"
+  }
+}
+```
+
+The exact configuration format must match the repository's Wrangler setup. Existing Vestren configuration remains authoritative. Cloudflare currently recommends `wrangler.jsonc` for new Worker projects. citeturn0search3
+
+Runtime access must be through:
+
+```ts
+env.AI.run(selectedModel, request)
+```
+
+Do not expose the binding through the frontend.
+
+If the binding is unavailable in local/test environments, keep the deterministic mock provider available. Do not fabricate real-provider success.
+
+Separate:
 - local;
 - preview;
 - production.
 
 Before claiming real LLM production capability, verify:
-
 - provider configuration;
-- required secrets;
+- AI binding availability;
+- selected model availability;
 - correct environment;
 - protected routes;
 - tenant/project authorization;
@@ -844,7 +918,7 @@ Before claiming real LLM production capability, verify:
 - audit behavior;
 - canonical CSV flow.
 
-If a real provider credential is unavailable, clearly report:
+If a real provider is unavailable, clearly report:
 
 **code implemented / tests verified / production provider unconfigured**
 
@@ -993,11 +1067,14 @@ Return:
 - final commit SHA.
 
 ## LLM provider
-- selected provider;
-- model/configuration strategy;
+- selected provider: **Cloudflare Workers AI**;
+- exact model selected and why it is suitable for structured planning;
+- AI binding/configuration;
 - adapter;
 - local/test provider;
-- production configuration status.
+- production configuration status;
+- whether AI Gateway is enabled;
+- whether any external provider (for example Groq) was intentionally left for a later adapter.
 
 ## Planning
 - structured plan schema;
