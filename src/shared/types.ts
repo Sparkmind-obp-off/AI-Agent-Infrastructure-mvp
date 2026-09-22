@@ -14,6 +14,7 @@ export interface AuditEvent {
   timestamp: string
   tenant_id: string
   project_id: string
+  principal_subject?: string
   agent_id: string
   session_id: string
   action: string

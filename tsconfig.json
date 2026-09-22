@@ -7,7 +7,7 @@
     "jsx": "react-jsx",
     "strict": true,
     "skipLibCheck": true,
-    "types": ["@cloudflare/workers-types", "vite/client"],
+    "types": ["@cloudflare/workers-types", "vite/client", "node"],
     "allowImportingTsExtensions": true,
     "noEmit": true
   },

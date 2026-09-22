@@ -1,6 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { app } from '../functions/api/[[path]]'
-import { authorize, issueDemoToken } from '../src/server/auth'
 import { runCsvAgent } from '../src/server/runtime'
 import { SafeMcpToolProvider } from '../src/server/providers/mcp'
 import { E2BProvider } from '../src/server/providers/e2b'
@@ -8,7 +6,7 @@ import { MockE2BProvider } from '../src/server/providers/mock-e2b'
 import { SAMPLE_CSV } from '../src/server/sample'
 
 const env = { EXECUTION_PROVIDER: 'mock', MAX_TOOL_CALLS: '3', MAX_ITERATIONS: '4', EXECUTION_TIMEOUT_MS: '15000', MAX_ARTIFACT_BYTES: '65536' }
-const principal = { tenant: 'demo-tenant', project: 'workbench' }
+const principal = { tenant: 'tenant-a', project: 'project-a' }
 
 describe('Vestren vertical slice', () => {
   it('completes intent to verified artifact and audit', async () => {
@@ -38,30 +36,14 @@ describe('Vestren vertical slice', () => {
     expect(() => new E2BProvider('')).toThrow('E2B_NOT_CONFIGURED')
   })
 
-  it('rejects malformed and tampered authentication tokens', async () => {
-    const authEnv = { AUTH_SIGNING_SECRET: 'unit-test-secret' }
-    const token = await issueDemoToken(authEnv)
-    expect(await authorize(new Request('https://example.test', { headers: { authorization: `Bearer ${token}` } }), authEnv)).toMatchObject(principal)
-    expect(await authorize(new Request('https://example.test', { headers: { authorization: 'Bearer not-base64.***' } }), authEnv)).toBeNull()
-    expect(await authorize(new Request('https://example.test', { headers: { authorization: `Bearer ${token}tampered` } }), authEnv)).toBeNull()
-  })
-
   it('fails closed when the tenant daily quota is exhausted', async () => {
     let writes = 0
     const db = {
       prepare(query: string) {
-        return {
-          bind() {
-            return {
-              run: async () => { writes += 1; return {} },
-              first: async () => query.includes('COUNT(*)') ? { count: 25 } : null,
-            }
-          },
-        }
+        return { bind: () => ({ run: async () => { writes += 1; return {} }, first: async () => query.includes('COUNT(*)') ? { count: 25 } : null }) }
       },
     } as unknown as D1Database
-    await expect(runCsvAgent({ ...env, DB: db }, { sessionId: crypto.randomUUID(), goal: 'Analyze this CSV and return a report artifact', principal }))
-      .rejects.toThrow('GUARDRAIL_DAILY_RUN_LIMIT')
+    await expect(runCsvAgent({ ...env, DB: db }, { sessionId: crypto.randomUUID(), goal: 'Analyze this CSV and return a report artifact', principal })).rejects.toThrow('GUARDRAIL_DAILY_RUN_LIMIT')
     expect(writes).toBe(0)
   })
 
@@ -69,38 +51,11 @@ describe('Vestren vertical slice', () => {
     const writes: string[] = []
     const db = {
       prepare(query: string) {
-        return {
-          bind() {
-            return {
-              run: async () => { writes.push(query); return {} },
-              first: async () => query.includes('COUNT(*)') ? { count: 0 } : { tenant_id: 'other-tenant', project_id: 'workbench' },
-            }
-          },
-        }
+        return { bind: () => ({ run: async () => { writes.push(query); return {} }, first: async () => query.includes('COUNT(*)') ? { count: 0 } : { tenant_id: 'other-tenant', project_id: 'project-a' } }) }
       },
     } as unknown as D1Database
-    await expect(runCsvAgent({ ...env, DB: db }, { sessionId: crypto.randomUUID(), goal: 'Analyze this CSV and return a report artifact', principal }))
-      .rejects.toThrow('AUTHORIZATION_SCOPE_MISMATCH')
+    await expect(runCsvAgent({ ...env, DB: db }, { sessionId: crypto.randomUUID(), goal: 'Analyze this CSV and return a report artifact', principal })).rejects.toThrow('AUTHORIZATION_SCOPE_MISMATCH')
     expect(writes).toHaveLength(1)
     expect(writes[0]).toContain('INSERT OR IGNORE INTO sessions')
-  })
-
-  it('validates artifact keys and checks scoped metadata before reading R2', async () => {
-    const authEnv = { AUTH_SIGNING_SECRET: 'unit-test-secret' }
-    const token = await issueDemoToken(authEnv)
-    let r2Read = false
-    const db = {
-      prepare() {
-        return { bind: () => ({ first: async () => null }) }
-      },
-    } as unknown as D1Database
-    const artifacts = { get: async () => { r2Read = true; return null } } as unknown as R2Bucket
-    const headers = { authorization: `Bearer ${token}` }
-    const invalid = await app.request('/api/artifacts/..%2Fsecret', { headers }, { ...authEnv, DB: db, ARTIFACTS: artifacts })
-    expect(invalid.status).toBe(400)
-    const key = `sessions/${crypto.randomUUID()}/${crypto.randomUUID()}/report.md`
-    const denied = await app.request(`/api/artifacts/${encodeURIComponent(key)}`, { headers }, { ...authEnv, DB: db, ARTIFACTS: artifacts })
-    expect(denied.status).toBe(404)
-    expect(r2Read).toBe(false)
   })
 })

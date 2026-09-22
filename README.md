@@ -1,95 +1,138 @@
 # VESTREN Workbench
 
-Vestren is the execution layer for reliable AI agents. This repository now contains a focused prototype proving the loop:
+Vestren is the execution layer for reliable AI agents. This repository implements the Workbench vertical slice:
 
-**Intent → Context → Plan → Tool → Execute → Verify → Artifact → Memory → Audit**
+**Identity → Tenant → Project → Authorization → Intent → Context → Plan → Tool → Execute → Verify → Artifact → Audit**
 
-## Prototype status
+## Current status
 
-The canonical CSV analysis vertical slice is implemented and locally verified. A user can start an authenticated demo session, run a bounded agent task against a deterministic CSV fixture, observe the plan and MCP-style tool activity, execute through an `ExecutionProvider`, verify three findings, persist state/audit records in D1, store the report in R2, and download the artifact.
+Implemented and locally tested:
 
-The deployed demo intentionally uses the explicit `mock-e2b` adapter because no `E2B_API_KEY` is configured. The real `E2BProvider` implementation is present and fails closed when selected without a credential.
+- React 19 + TypeScript Workbench UI;
+- Cloudflare Pages Functions + Hono API;
+- Auth0 OIDC access-token boundary using RS256, remote JWKS, exact issuer, and audience validation;
+- provider-neutral `IdentityProvider` interface;
+- D1-backed users, tenants, tenant memberships, projects, and project memberships;
+- server-authoritative project permissions (`owner`, `editor`, `viewer`);
+- project-scoped sessions, executions, artifacts, and audit reads;
+- explicitly gated deterministic test identity for local/test environments only;
+- deterministic CSV analysis, ToolProvider/MCP boundary, ExecutionProvider, E2B adapter, mock-E2B, guardrails, D1 persistence, and R2 artifacts;
+- integration tests covering HTTP authentication through D1/R2 authorization behavior.
 
-## Completed features
+The production identity **code path exists**, but Auth0 tenant/application values and test users are owner-managed deployment configuration. A deployment without those values fails closed and must not be described as a verified live login.
 
-- Professional React + TypeScript Workbench UI
-- Hono API on Cloudflare Pages Functions
-- Signed, short-lived demo authentication boundary
-- Tenant/project/session-scoped request handling
-- Canonical CSV task and deterministic fixture
-- Visible plan, execution activity, findings, verification, artifacts, and audit trail
-- Safe read-only `ToolProvider` / MCP adapter boundary
-- Stable `ExecutionProvider` contract with E2B and deterministic mock-E2B adapters
-- Execution timeout, tool-call, iteration, sandbox-lifetime, artifact-size, and hard per-tenant/project daily-run limits
-- Structured, secret-redacted success and failure audit events
-- D1 persistence for sessions, execution records, artifacts, and audit index
-- R2 artifact storage with canonical-key validation and tenant/project-authorized download route
-- Cloudflare Agents SDK Durable Object session class (`src/server/agent-worker.ts`) ready for cross-script deployment
-- Contract, authorization-boundary, guardrail, and end-to-end runtime tests
+## Identity decision
+
+**Provider:** Auth0 using OAuth 2.0/OIDC access tokens.
+
+Why it fits:
+
+- standards-based JWT/JWKS verification works in Cloudflare Workers;
+- the browser uses Auth0 Universal Login rather than a custom password system;
+- provider SDK objects remain outside business logic;
+- API tokens are verified server-side with only `RS256`, exact issuer, and exact audience;
+- the application, not token scope claims, owns tenant/project authorization in D1;
+- realistic RS256/JWKS and deterministic local identity fixtures are testable without production credentials.
+
+Browser tokens use Auth0's in-memory cache. No signing key, client secret, or refresh token is stored in application source or browser storage.
 
 ## Functional URIs
 
-| Method | URI | Purpose |
+| Method | URI | Authentication / purpose |
 |---|---|---|
-| `GET` | `/` | Vestren Workbench UI |
-| `GET` | `/api/health` | Runtime and provider health |
-| `POST` | `/api/auth/demo` | Issue a one-hour signed demo token |
-| `POST` | `/api/runs` | Execute the CSV vertical slice; body: `{ sessionId: UUID, goal: string }` |
-| `GET` | `/api/sessions/:id` | Reload a tenant-scoped persisted session and audit trail |
-| `GET` | `/api/artifacts/:key` | Download an authenticated report artifact |
+| `GET` | `/` | Workbench UI and Auth0 entry point |
+| `GET` | `/api/health` | Public health and configured identity-provider status |
+| `POST` | `/api/auth/test` | Non-production-only deterministic identity; requires both test gates |
+| `GET` | `/api/me` | Authenticated identity and authoritative accessible project list |
+| `POST` | `/api/runs` | `execution:start`; body `{ sessionId: UUID, goal: string }` |
+| `GET` | `/api/sessions/:id` | `session:read`; scoped session and audit trail |
+| `GET` | `/api/executions/:id` | `session:read`; scoped execution metadata |
+| `GET` | `/api/artifacts/:key` | `artifact:read`; canonical and scoped artifact download |
 
-All routes except health and demo-token issuance require `Authorization: Bearer <token>`.
+Project-scoped routes require:
 
-## Architecture and data
+```http
+Authorization: Bearer <Auth0 access token>
+X-Vestren-Tenant: <authorized tenant id>
+X-Vestren-Project: <authorized project id>
+```
 
-- **Frontend:** React 19, TypeScript, Vite
-- **Control plane:** Cloudflare Pages Functions + Hono
-- **Agent state:** D1 in the deployed prototype; Cloudflare Agents SDK Durable Object class is prepared for a dedicated cross-script binding
-- **Application records:** Cloudflare D1
-- **Artifacts:** Cloudflare R2, with D1 response fallback for local/unit contexts
-- **Tool boundary:** `ToolProvider` with a safe MCP-style read tool
-- **Execution boundary:** `ExecutionProvider` → `E2BProvider` or explicit `MockE2BProvider`
-- **AI planning:** deterministic bounded fallback for the credential-free demo; provider-neutral contracts preserve the Workers AI/BYOK path
+These scope headers select from memberships; they do not grant access.
 
-D1 tables: `sessions`, `executions`, `artifacts`, and `audit_events`. The migration is in `migrations/0001_initial.sql`.
+## Authorization model
 
-## User guide
+D1 is authoritative:
 
-1. Open the Workbench.
-2. Review the pre-filled CSV analysis request and scoped fixture.
-3. Select **Run agent**.
-4. Inspect plan completion, tool/execution events, usage limits, findings, and verification checks.
-5. Open **Audit trail** for the full event history.
-6. Download `vestren-csv-report.md` from the Artifacts panel.
+1. a verified identity is normalized to `(issuer, subject)`;
+2. Vestren resolves an internal user;
+3. active tenant membership is required;
+4. the project must belong to that tenant;
+5. project membership and role determine permissions;
+6. the resource query repeats tenant/project scope before access.
+
+Project roles:
+
+- `owner` and `editor`: project/session read, session create, execution start, artifact read, audit read;
+- `viewer`: project/session/artifact/audit read only.
+
+## Data architecture
+
+- **D1:** `users`, `tenants`, `tenant_memberships`, `projects`, `project_memberships`, `sessions`, `executions`, `artifacts`, `audit_events`.
+- **R2:** report artifact bodies after D1 authorization.
+- **Durable Objects:** prepared Agents SDK session class; not yet the live state owner.
+- **Migrations:** `0001_initial.sql`, then `0002_identity_and_memberships.sql`.
+
+Production users are provisioned by inserting memberships through an owner-controlled administrative process. Self-service tenant creation is not implemented.
 
 ## Local development
 
 ```bash
 npm install
-printf 'AUTH_SIGNING_SECRET=<local-random-secret>\n' > .dev.vars
+cat > .dev.vars <<'VARS'
+APP_ENV=development
+AUTH_TEST_MODE=true
+AUTH_TEST_SIGNING_SECRET=<local-random-secret>
+EXECUTION_PROVIDER=mock
+VARS
 npm run typecheck
 npm test
-npm run build
+VITE_ENABLE_TEST_AUTH=true npm run build
 npx wrangler d1 migrations apply vestren-workbench-production --local
 pm2 start ecosystem.config.cjs
 curl http://localhost:3000/api/health
 ```
 
-Do not commit `.dev.vars`.
+The Vite development UI can request `/api/auth/test`; the endpoint returns 404 whenever `APP_ENV=production`, even if other test variables are accidentally present.
 
-## Environment variables
+## Auth0 configuration
 
-Names only:
+Create one Auth0 Single Page Application and one API. Register exact local, preview, and production callback/logout/origin URLs in Auth0. Do not use wildcard callback URLs.
 
-- `AUTH_SIGNING_SECRET` — required server-side secret
-- `EXECUTION_PROVIDER` — `mock` for deterministic demo or `e2b`
-- `E2B_API_KEY` — required only when `EXECUTION_PROVIDER=e2b`
-- `MAX_TOOL_CALLS`
-- `MAX_ITERATIONS`
-- `EXECUTION_TIMEOUT_MS`
-- `MAX_ARTIFACT_BYTES`
+Server-side Cloudflare variables/secrets:
 
-No provider key is exposed to the browser or written to audit payloads.
+- `APP_ENV=production`
+- `AUTH0_ISSUER` — canonical HTTPS issuer, normally `https://<tenant-or-custom-domain>/`
+- `AUTH0_AUDIENCE` — Auth0 API identifier
+
+Browser-safe build variables:
+
+- `VITE_AUTH0_DOMAIN`
+- `VITE_AUTH0_CLIENT_ID`
+- `VITE_AUTH0_AUDIENCE`
+- `VITE_ENABLE_TEST_AUTH=true` — local test build only; never set for production
+
+Local/test-only variables:
+
+- `AUTH_TEST_MODE=true`
+- `AUTH_TEST_SIGNING_SECRET`
+
+Execution variables:
+
+- `EXECUTION_PROVIDER`
+- `E2B_API_KEY` when `EXECUTION_PROVIDER=e2b`
+- `MAX_TOOL_CALLS`, `MAX_ITERATIONS`, `EXECUTION_TIMEOUT_MS`, `MAX_ARTIFACT_BYTES`
+
+Never commit real values. `AUTH0_CLIENT_SECRET` is not required by this SPA + bearer-token design.
 
 ## Testing
 
@@ -100,7 +143,7 @@ npm run build
 npm audit --omit=dev
 ```
 
-Tests cover provider and tool contracts, the full request-to-artifact flow, malformed authentication, fail-closed tool authorization, tenant session isolation, artifact path/scope checks, missing E2B credentials, daily quota exhaustion, timeout, artifact-size guardrails, verification, and structured audit output.
+The suite covers missing/malformed/expired/tampered credentials, RS256/JWKS verification, wrong issuer/audience, unsupported algorithm, missing claims, production test-auth deactivation, authoritative membership resolution, viewer denial, tenant/project switching, session/execution/artifact/audit isolation, R2 access ordering, migrations, canonical CSV execution, provider contracts, and guardrails.
 
 ## Deployment
 
@@ -108,30 +151,26 @@ Tests cover provider and tool contracts, the full request-to-artifact flow, malf
 - **Cloudflare project:** `vestren-workbench`
 - **D1:** `vestren-workbench-production`
 - **R2:** `vestren-workbench-artifacts`
-- **Production URL:** https://vestren-workbench.pages.dev
+- **Production:** https://vestren-workbench.pages.dev
 - **GitHub:** https://github.com/Sparkmind-obp-off/vestren
 
-Apply migrations and secrets before deploying:
+Before production identity smoke testing:
 
-```bash
-npx wrangler d1 migrations apply vestren-workbench-production --remote
-openssl rand -hex 32 | npx wrangler pages secret put AUTH_SIGNING_SECRET --project-name vestren-workbench
-npm run build
-npx wrangler pages deploy dist --project-name vestren-workbench
-```
+1. configure exact Auth0 URLs;
+2. set server and build variables;
+3. apply `0002_identity_and_memberships.sql` remotely;
+4. provision at least two test identities across separate tenants/projects;
+5. build and deploy;
+6. verify unauthenticated denial, successful login, role denial, and cross-tenant denial.
 
-## Not yet implemented / known production gaps
+## Not yet implemented / verified gaps
 
-- A real E2B call requires an owner-provided `E2B_API_KEY`; current demo runs the contract-compatible deterministic adapter.
-- The Cloudflare Agents SDK Durable Object class must be deployed as a dedicated Worker and bound cross-script to Pages before Durable Objects replace D1 as the live session-state owner.
-- Workers AI / AI Gateway planning is not enabled in the credential-free deterministic slice.
-- Real CSV upload and MIME/content scanning are not enabled; the UI and provider boundaries are ready for an R2-backed upload flow.
-- The daily run quota is enforced per tenant/project from D1 execution records; a monthly/account-level quota and reservation-based protection for highly concurrent starts are not yet implemented.
+- Owner-supplied Auth0 configuration and real-user production login must be verified after configuration.
+- No self-service tenant/project provisioning or invitation UI exists.
+- Identity logout invalidates the local Auth0 session; immediate API-token revocation remains governed by Auth0 token lifetime/provider policy.
+- Real E2B execution still requires `E2B_API_KEY`; deterministic mock execution remains the configured deployment default.
+- Durable Object live session ownership, real CSV upload/scanning, and real LLM planning remain future work.
 
-## Recommended next steps
+## Recommended next action
 
-1. Replace demo authentication with the selected production identity provider and add real multi-tenant integration fixtures.
-2. Configure `E2B_API_KEY`, switch `EXECUTION_PROVIDER=e2b`, and run the integration test.
-3. Deploy and bind `VestrenSessionAgent` as the durable session owner.
-4. Add signed R2 upload URLs and CSV validation/scanning.
-5. Add Workers AI planning behind `LLMProvider`, optionally routed through AI Gateway.
+Configure the Auth0 application/API and two production test users, provision their D1 memberships in separate tenants, then run the documented production identity and isolation smoke test.

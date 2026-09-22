@@ -2,12 +2,13 @@ import type { AuditEvent } from '../shared/types'
 
 export class AuditTrail {
   readonly events: AuditEvent[] = []
-  constructor(private readonly scope: { tenantId: string; projectId: string; agentId: string; sessionId: string }) {}
+  constructor(private readonly scope: { tenantId: string; projectId: string; principalSubject?: string; agentId: string; sessionId: string }) {}
 
   emit(input: Pick<AuditEvent, 'action' | 'reason' | 'status'> & Partial<AuditEvent>) {
     const event: AuditEvent = {
       event_id: crypto.randomUUID(), timestamp: new Date().toISOString(),
       tenant_id: this.scope.tenantId, project_id: this.scope.projectId,
+      principal_subject: this.scope.principalSubject,
       agent_id: this.scope.agentId, session_id: this.scope.sessionId,
       latency_ms: 0, usage: { tool_calls: 0, iterations: 0, estimated_cost_usd: 0 }, ...input,
     }

@@ -1,5 +1,4 @@
 import { AuditTrail } from './audit'
-import type { AuthPrincipal } from './auth'
 import { getGuardrails, type Env } from './config'
 import { E2BProvider } from './providers/e2b'
 import { MockE2BProvider } from './providers/mock-e2b'
@@ -8,7 +7,7 @@ import { ArtifactStorageProvider } from './providers/storage'
 import type { ExecutionProvider } from './providers/contracts'
 import type { PlanStep, RunResult } from '../shared/types'
 
-type RunInput = { sessionId: string; goal: string; principal: Pick<AuthPrincipal, 'tenant' | 'project'> }
+type RunInput = { sessionId: string; goal: string; principal: { tenant: string; project: string; subject?: string } }
 
 const errorClass = (error: unknown) => error instanceof Error ? error.message.split(':', 1)[0] : 'UNKNOWN_ERROR'
 
@@ -44,7 +43,7 @@ export async function runCsvAgent(env: Env, input: RunInput): Promise<RunResult>
   const started = Date.now()
   const executionId = crypto.randomUUID()
   const guardrails = getGuardrails(env)
-  const audit = new AuditTrail({ tenantId: input.principal.tenant, projectId: input.principal.project, agentId: 'csv-analyst', sessionId: input.sessionId })
+  const audit = new AuditTrail({ tenantId: input.principal.tenant, projectId: input.principal.project, principalSubject: input.principal.subject, agentId: 'csv-analyst', sessionId: input.sessionId })
   const plan: PlanStep[] = ['Load the scoped CSV through the MCP tool boundary', 'Analyze rows in an isolated execution provider', 'Verify and persist the generated report']
     .map((label, index) => ({ id: `step-${index + 1}`, label, status: 'pending' }))
   let toolCalls = 0

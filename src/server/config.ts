@@ -4,7 +4,11 @@ export interface Env {
   DB?: D1Database
   ARTIFACTS?: R2Bucket
   E2B_API_KEY?: string
-  AUTH_SIGNING_SECRET?: string
+  APP_ENV?: 'development' | 'test' | 'preview' | 'production'
+  AUTH0_ISSUER?: string
+  AUTH0_AUDIENCE?: string
+  AUTH_TEST_MODE?: string
+  AUTH_TEST_SIGNING_SECRET?: string
   EXECUTION_PROVIDER?: string
   MAX_TOOL_CALLS?: string
   MAX_ITERATIONS?: string
