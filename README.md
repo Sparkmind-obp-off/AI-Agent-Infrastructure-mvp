@@ -108,7 +108,7 @@ Tests cover provider and tool contracts, the full request-to-artifact flow, malf
 - **Cloudflare project:** `vestren-workbench`
 - **D1:** `vestren-workbench-production`
 - **R2:** `vestren-workbench-artifacts`
-- **Production URL:** populated after verified deployment
+- **Production URL:** https://vestren-workbench.pages.dev
 - **GitHub:** https://github.com/Sparkmind-obp-off/vestren
 
 Apply migrations and secrets before deploying:
