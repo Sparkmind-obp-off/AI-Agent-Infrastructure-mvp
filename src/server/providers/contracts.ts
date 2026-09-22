@@ -10,7 +10,16 @@ export interface ExecutionProvider {
   getStatus(sandboxId: string): Promise<'running' | 'terminated'>
 }
 
-export interface ToolDefinition { name: string; description: string; sideEffect: boolean; approvalRequired: boolean }
+export interface ToolDefinition {
+  name: string
+  description: string
+  inputSchema: Record<string, unknown>
+  sideEffect: boolean
+  approvalRequired: boolean
+  authorizationRequired: boolean
+  timeoutMs: number
+  failureBehavior: 'fail-closed'
+}
 export interface ToolProvider { list(): ToolDefinition[]; call(name: string, args: unknown, authorized: boolean): Promise<{ content: string }> }
 export interface StorageProvider { put(key: string, content: string, contentType: string): Promise<{ url: string; size: number }> }
 export interface LLMProvider { readonly name: string; plan(goal: string): Promise<string[]> }

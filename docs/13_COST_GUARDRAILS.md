@@ -13,4 +13,6 @@ Controls:
 - artifact size limits
 - fail-safe behavior when quota is exhausted
 
+The current Workbench enforces the daily run limit from D1 execution records per tenant/project before claiming a session or starting a provider. Monthly/account-level quotas and concurrency-safe quota reservations remain future work.
+
 A free-tier system must not silently become a paid system.
