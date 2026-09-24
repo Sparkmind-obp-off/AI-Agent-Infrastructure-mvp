@@ -63,7 +63,7 @@ app.get('/api/me', async (c) => {
   } catch (error) { return authorizationFailure(c, error) }
 })
 
-app.post('/api/runs', async (c) => {
+async function startRun(c: AppContext, planner?: 'llm') {
   const context = await contextFor(c, 'execution:start')
   if (context instanceof Response) return context
   const parsed = runSchema.safeParse(await c.req.json().catch(() => null))
@@ -71,15 +71,19 @@ app.post('/api/runs', async (c) => {
   if (parsed.data.csv !== undefined) {
     try { parseCsvInput(parsed.data.csv) } catch { return c.json({ error: 'INVALID_REQUEST' }, 400) }
   }
-  try { return c.json(await runCsvAgent(c.env, { ...parsed.data, principal: { tenant: context.tenantId, project: context.projectId, subject: context.identity.subject } })) }
+  try { return c.json(await runCsvAgent(c.env, { ...parsed.data, planner, principal: { tenant: context.tenantId, project: context.projectId, subject: context.identity.subject } })) }
   catch (error) {
     const code = error instanceof Error ? error.message.split(':', 1)[0] : 'UNKNOWN_ERROR'
     if (code === 'AUTHORIZATION_SCOPE_MISMATCH') return c.json({ error: 'AUTHORIZATION_DENIED' }, 403)
     if (code.startsWith('GUARDRAIL_')) return c.json({ error: code }, 429)
-    if (code === 'E2B_NOT_CONFIGURED') return c.json({ error: code }, 503)
+    if (code === 'E2B_NOT_CONFIGURED' || code === 'LLM_NOT_CONFIGURED') return c.json({ error: code }, 503)
+    if (['INVALID_AGENT_PLAN', 'INVALID_TOOL_ARGUMENTS', 'TOOL_NOT_ALLOWED'].includes(code)) return c.json({ error: code }, 400)
     return c.json({ error: 'RUN_FAILED' }, 500)
   }
-})
+}
+
+app.post('/api/runs', (c) => startRun(c))
+app.post('/api/agent/runs', (c) => startRun(c, 'llm'))
 
 app.get('/api/sessions/:id', async (c) => {
   const context = await contextFor(c, 'session:read')

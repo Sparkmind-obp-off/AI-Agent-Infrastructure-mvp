@@ -22,4 +22,4 @@ export interface ToolDefinition {
 }
 export interface ToolProvider { list(): ToolDefinition[]; call(name: string, args: unknown, authorized: boolean): Promise<{ content: string }> }
 export interface StorageProvider { put(key: string, content: string, contentType: string): Promise<{ url: string; size: number }> }
-export interface LLMProvider { readonly name: string; plan(goal: string): Promise<string[]> }
+export interface LLMProvider { readonly name: string; plan(input: { goal: string; sessionId: string; tenantId: string; projectId: string; tools: ToolDefinition[] }): Promise<unknown> }

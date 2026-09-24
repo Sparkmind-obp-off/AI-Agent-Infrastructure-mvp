@@ -17,7 +17,8 @@ Implemented and locally tested:
 - project-scoped sessions, executions, artifacts, and audit reads;
 - explicitly gated deterministic test identity for local/test environments only;
 - validated pasted CSV input (or the existing deterministic fixture), ToolProvider/MCP fixture boundary, ExecutionProvider with E2B and mock-E2B, guardrails, scoped D1 execution records, and R2 artifacts;
-- integration tests covering HTTP authentication through D1/R2 authorization behavior.
+- integration tests covering HTTP authentication through D1/R2 authorization behavior;
+- S3 Workers AI structured planning at `/api/agent/runs`, with strict scope/tool/argument validation and one bounded CSV action through the existing ToolProvider and ExecutionProvider. The S2 `/api/runs` deterministic route remains available.
 
 The production identity **code path exists**, but Auth0 tenant/application values and test users are owner-managed deployment configuration. A deployment without those values fails closed and must not be described as a verified live login.
 
@@ -45,6 +46,7 @@ Browser tokens use Auth0's in-memory cache. No signing key, client secret, or re
 | `POST` | `/api/auth/test` | Explicit `development`/`test` deterministic identity; requires both test gates |
 | `GET` | `/api/me` | Authenticated identity and authoritative accessible project list |
 | `POST` | `/api/runs` | `execution:start`; body `{ sessionId: UUID, goal: string, csv?: string }`. When omitted, the deterministic fixture is used. |
+| `POST` | `/api/agent/runs` | Same authenticated body/scope; Workers AI proposes a structured, server-validated single-action plan. Fails closed without the `AI` binding. |
 | `GET` | `/api/sessions/:id` | `session:read`; scoped session and audit trail |
 | `GET` | `/api/executions/:id` | `session:read`; scoped execution metadata |
 | `GET` | `/api/artifacts/:key` | `artifact:read`; canonical and scoped artifact download |
@@ -79,6 +81,7 @@ Project roles:
 
 - **D1:** `users`, `tenants`, `tenant_memberships`, `projects`, `project_memberships`, `sessions`, `executions`, `artifacts`, `audit_events`.
 - **R2:** report artifact bodies after D1 authorization.
+- **S3 agent trail:** existing session/execution status and scoped audit events record plan creation/validation, tool selection, execution and verification; no raw model output or credentials are persisted.
 - **Durable Objects:** prepared Agents SDK session class; not yet the live state owner.
 - **Migrations:** `0001_initial.sql`, `0002_identity_and_memberships.sql`, then `0003_execution_input.sql` (source/size metadata, normalized error and completion time; raw input is not persisted).
 
@@ -133,6 +136,7 @@ Execution variables:
 - `EXECUTION_PROVIDER`
 - `E2B_API_KEY` when `EXECUTION_PROVIDER=e2b`
 - `MAX_TOOL_CALLS`, `MAX_ITERATIONS`, `EXECUTION_TIMEOUT_MS`, `MAX_ARTIFACT_BYTES`
+- `AI` — Workers AI binding in `wrangler.jsonc`, with account-level Workers AI access required for live agent planning. No OpenAI key is used.
 
 Never commit real values. `AUTH0_CLIENT_SECRET` is not required by this SPA + bearer-token design.
 
@@ -171,7 +175,7 @@ Before production identity smoke testing:
 - No self-service tenant/project provisioning or invitation UI exists.
 - Identity logout invalidates the local Auth0 session; immediate API-token revocation remains governed by Auth0 token lifetime/provider policy.
 - Real E2B execution still requires `E2B_API_KEY`; deterministic mock execution remains the configured deployment default.
-- Durable Object live session ownership, real CSV upload/scanning, and real LLM planning remain future work.
+- Durable Object live session ownership and real CSV upload/scanning remain future work. Live Workers AI and E2B verification require owner-managed access; deterministic S3 tests do not establish live provider success.
 
 ## Recommended next action
 

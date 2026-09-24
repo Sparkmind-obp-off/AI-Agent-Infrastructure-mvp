@@ -1,4 +1,6 @@
 import { AuditTrail } from './audit'
+import { validateAgentPlan } from './plan'
+import { WorkersAIProvider, WORKERS_AI_MODEL } from './providers/workers-ai'
 import { getGuardrails, type Env } from './config'
 import { E2BProvider } from './providers/e2b'
 import { MockE2BProvider } from './providers/mock-e2b'
@@ -8,9 +10,9 @@ import { parseCsvInput } from './sample'
 import type { ExecutionProvider } from './providers/contracts'
 import type { PlanStep, RunResult } from '../shared/types'
 
-type RunInput = { sessionId: string; goal: string; csv?: string; principal: { tenant: string; project: string; subject?: string } }
+type RunInput = { sessionId: string; goal: string; csv?: string; principal: { tenant: string; project: string; subject?: string }; planner?: 'llm' }
 
-const knownFailures = new Set(['AUTHORIZATION_SCOPE_MISMATCH', 'GUARDRAIL_DAILY_RUN_LIMIT', 'GUARDRAIL_TOOL_LIMIT', 'GUARDRAIL_TIMEOUT', 'GUARDRAIL_ARTIFACT_SIZE', 'E2B_NOT_CONFIGURED', 'E2B_EXECUTION_FAILED', 'VERIFICATION_FAILED', 'SANDBOX_NOT_FOUND', 'INVALID_CSV_INPUT'])
+const knownFailures = new Set(['AUTHORIZATION_SCOPE_MISMATCH', 'GUARDRAIL_DAILY_RUN_LIMIT', 'GUARDRAIL_TOOL_LIMIT', 'GUARDRAIL_TIMEOUT', 'GUARDRAIL_ARTIFACT_SIZE', 'E2B_NOT_CONFIGURED', 'E2B_EXECUTION_FAILED', 'VERIFICATION_FAILED', 'SANDBOX_NOT_FOUND', 'INVALID_CSV_INPUT', 'LLM_NOT_CONFIGURED', 'LLM_PROVIDER_FAILED', 'INVALID_AGENT_PLAN', 'TOOL_NOT_ALLOWED', 'INVALID_TOOL_ARGUMENTS', 'GUARDRAIL_STEP_LIMIT'])
 const errorClass = (error: unknown) => {
   const code = error instanceof Error ? error.message.split(':', 1)[0] : ''
   return knownFailures.has(code) ? code : 'RUN_FAILED'
@@ -44,8 +46,18 @@ async function persistAudit(env: Env, sessionId: string, audit: AuditTrail) {
   }
 }
 
+async function withinDeadline<T>(operation: Promise<T>, deadline: number): Promise<T> {
+  const remaining = deadline - Date.now()
+  if (remaining <= 0) throw new Error('GUARDRAIL_TIMEOUT')
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try {
+    return await Promise.race([operation, new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('GUARDRAIL_TIMEOUT')), remaining) })])
+  } finally { clearTimeout(timer) }
+}
+
 export async function runCsvAgent(env: Env, input: RunInput): Promise<RunResult> {
   const started = Date.now()
+  const deadline = started + getGuardrails(env).executionTimeoutMs
   const executionId = crypto.randomUUID()
   const guardrails = getGuardrails(env)
   const audit = new AuditTrail({ tenantId: input.principal.tenant, projectId: input.principal.project, principalSubject: input.principal.subject, agentId: 'csv-analyst', sessionId: input.sessionId })
@@ -64,16 +76,30 @@ export async function runCsvAgent(env: Env, input: RunInput): Promise<RunResult>
     sessionClaimed = true
     audit.emit({ action: 'request.received', reason: 'User submitted CSV analysis intent', status: 'success' })
     audit.emit({ action: 'context.built', reason: 'Loaded authorized tenant and project execution context', status: 'success' })
-    audit.emit({ action: 'plan.created', reason: 'Deterministic planner selected the canonical safe workflow', provider: 'deterministic-fallback', model_or_tool: 'bounded-planner-v1', status: 'success', usage: { tool_calls: 0, iterations, estimated_cost_usd: 0 } })
-
     let csv: string
-    if (input.csv !== undefined) {
-      csv = input.csv
-    } else {
-      const tools = new SafeMcpToolProvider()
+    if (input.planner === 'llm') {
+      if (!env.AI) throw new Error('LLM_NOT_CONFIGURED')
+      const tools = new SafeMcpToolProvider({ sessionId: input.sessionId, csv: input.csv })
+      const selected = tools.list().filter((tool) => tool.name === 'analyze_csv')
+      const raw = await withinDeadline(new WorkersAIProvider(env.AI).plan({ goal: input.goal, sessionId: input.sessionId, tenantId: input.principal.tenant, projectId: input.principal.project, tools: selected }), deadline)
+      audit.emit({ action: 'plan.created', reason: 'Structured plan received from configured LLM', provider: 'workers-ai', model_or_tool: WORKERS_AI_MODEL, status: 'success' })
+      const validated = validateAgentPlan(raw, { sessionId: input.sessionId, tenantId: input.principal.tenant, projectId: input.principal.project, source: input.csv === undefined ? 'fixture' : 'submitted' }, tools, Math.min(guardrails.maxIterations, guardrails.maxToolCalls))
+      audit.emit({ action: 'plan.validated', reason: 'Plan schema, scope, tool, arguments, and step limit accepted', provider: 'vestren-runtime', model_or_tool: validated.id, status: 'success' })
+      const step = validated.steps[0]
       if (++toolCalls > guardrails.maxToolCalls) throw new Error('GUARDRAIL_TOOL_LIMIT')
-      csv = (await tools.call('read_csv_fixture', { sessionId: input.sessionId }, true)).content
-      audit.emit({ action: 'tool.completed', reason: 'Read-only scoped fixture requested by plan', provider: 'mcp-adapter', model_or_tool: 'read_csv_fixture', status: 'success', usage: { tool_calls: toolCalls, iterations, estimated_cost_usd: 0 } })
+      audit.emit({ action: 'tool.selected', reason: 'Server-approved CSV action selected', provider: 'mcp-adapter', model_or_tool: step.tool, status: 'success' })
+      csv = (await withinDeadline(tools.call(step.tool, step.args, true), deadline)).content
+      audit.emit({ action: 'tool.completed', reason: 'Scoped CSV resolved for execution boundary', provider: 'mcp-adapter', model_or_tool: step.tool, status: 'success' })
+    } else {
+      audit.emit({ action: 'plan.created', reason: 'Deterministic planner selected the canonical safe workflow', provider: 'deterministic-fallback', model_or_tool: 'bounded-planner-v1', status: 'success', usage: { tool_calls: 0, iterations, estimated_cost_usd: 0 } })
+      if (input.csv !== undefined) {
+        csv = input.csv
+      } else {
+        const tools = new SafeMcpToolProvider()
+        if (++toolCalls > guardrails.maxToolCalls) throw new Error('GUARDRAIL_TOOL_LIMIT')
+        csv = (await tools.call('read_csv_fixture', { sessionId: input.sessionId }, true)).content
+        audit.emit({ action: 'tool.completed', reason: 'Read-only scoped fixture requested by plan', provider: 'mcp-adapter', model_or_tool: 'read_csv_fixture', status: 'success', usage: { tool_calls: toolCalls, iterations, estimated_cost_usd: 0 } })
+      }
     }
     parseCsvInput(csv)
     plan[0].status = 'complete'
@@ -84,9 +110,9 @@ export async function runCsvAgent(env: Env, input: RunInput): Promise<RunResult>
     }
 
     provider = (env.EXECUTION_PROVIDER ?? 'mock') === 'e2b' ? new E2BProvider(env.E2B_API_KEY ?? '') : new MockE2BProvider()
-    sandboxId = await provider.createSandbox()
+    sandboxId = await withinDeadline(provider.createSandbox(), deadline)
     audit.emit({ action: 'execution.started', reason: 'Plan requires isolated data analysis', provider: provider.name, status: 'started', execution_id: executionId })
-    const output = await provider.execute(sandboxId, { csv, timeoutMs: guardrails.executionTimeoutMs, maxArtifactBytes: guardrails.maxArtifactBytes })
+    const output = await withinDeadline(provider.execute(sandboxId, { csv, timeoutMs: Math.max(1, deadline - Date.now()), maxArtifactBytes: guardrails.maxArtifactBytes }), deadline)
     plan[1].status = 'complete'
 
     const checks = [output.patterns.length === 3 && 'Exactly three patterns produced', output.report.startsWith('# Vestren CSV Analysis') && 'Report has expected heading', output.report.includes('Method') && 'Method is documented'].filter(Boolean) as string[]
@@ -108,6 +134,7 @@ export async function runCsvAgent(env: Env, input: RunInput): Promise<RunResult>
     return { sessionId: input.sessionId, executionId, status: 'verified', executionProvider: provider.name, summary: 'Analysis complete. Three defensible patterns were identified and the report passed verification.', patterns: output.patterns, plan, artifacts: [{ id: artifactKey, name: 'vestren-csv-report.md', contentType: 'text/markdown', size: stored.size, url: stored.url }], verification: { passed: true, checks }, audit: audit.events, guardrails, usage: { toolCalls, iterations, elapsedMs: Date.now() - started, estimatedCostUsd: 0 } }
   } catch (error) {
     const failure = errorClass(error)
+    if (input.planner === 'llm' && ['INVALID_AGENT_PLAN', 'TOOL_NOT_ALLOWED', 'INVALID_TOOL_ARGUMENTS', 'AUTHORIZATION_SCOPE_MISMATCH', 'GUARDRAIL_STEP_LIMIT'].includes(failure)) audit.emit({ action: 'plan.rejected', reason: 'Plan rejected by server validation', provider: 'vestren-runtime', status: 'denied', error_class: failure })
     audit.emit({ action: 'execution.failed', reason: 'The bounded run stopped before producing a verified result', provider: provider?.name ?? 'vestren-runtime', status: 'failed', error_class: failure, execution_id: executionId, usage: { tool_calls: toolCalls, iterations, estimated_cost_usd: 0 } })
     if (env.DB && sessionClaimed) {
       await env.DB.prepare('UPDATE sessions SET status = ?, updated_at = ? WHERE id = ? AND tenant_id = ? AND project_id = ?')

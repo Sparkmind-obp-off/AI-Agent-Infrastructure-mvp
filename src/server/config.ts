@@ -2,6 +2,7 @@ import type { Guardrails } from '../shared/types'
 
 export interface Env {
   DB?: D1Database
+  AI?: { run(model: string, input: { messages: { role: 'system' | 'user'; content: string }[]; response_format: { type: 'json_object' } }): Promise<unknown> }
   ARTIFACTS?: R2Bucket
   E2B_API_KEY?: string
   APP_ENV?: 'development' | 'test' | 'preview' | 'production'
