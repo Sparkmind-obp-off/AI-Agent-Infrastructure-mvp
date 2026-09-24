@@ -4,12 +4,17 @@ import { E2BProvider } from './providers/e2b'
 import { MockE2BProvider } from './providers/mock-e2b'
 import { SafeMcpToolProvider } from './providers/mcp'
 import { ArtifactStorageProvider } from './providers/storage'
+import { parseCsvInput } from './sample'
 import type { ExecutionProvider } from './providers/contracts'
 import type { PlanStep, RunResult } from '../shared/types'
 
-type RunInput = { sessionId: string; goal: string; principal: { tenant: string; project: string; subject?: string } }
+type RunInput = { sessionId: string; goal: string; csv?: string; principal: { tenant: string; project: string; subject?: string } }
 
-const errorClass = (error: unknown) => error instanceof Error ? error.message.split(':', 1)[0] : 'UNKNOWN_ERROR'
+const knownFailures = new Set(['AUTHORIZATION_SCOPE_MISMATCH', 'GUARDRAIL_DAILY_RUN_LIMIT', 'GUARDRAIL_TOOL_LIMIT', 'GUARDRAIL_TIMEOUT', 'GUARDRAIL_ARTIFACT_SIZE', 'E2B_NOT_CONFIGURED', 'E2B_EXECUTION_FAILED', 'VERIFICATION_FAILED', 'SANDBOX_NOT_FOUND', 'INVALID_CSV_INPUT'])
+const errorClass = (error: unknown) => {
+  const code = error instanceof Error ? error.message.split(':', 1)[0] : ''
+  return knownFailures.has(code) ? code : 'RUN_FAILED'
+}
 
 async function claimSession(env: Env, input: RunInput) {
   if (!env.DB) return
@@ -44,27 +49,39 @@ export async function runCsvAgent(env: Env, input: RunInput): Promise<RunResult>
   const executionId = crypto.randomUUID()
   const guardrails = getGuardrails(env)
   const audit = new AuditTrail({ tenantId: input.principal.tenant, projectId: input.principal.project, principalSubject: input.principal.subject, agentId: 'csv-analyst', sessionId: input.sessionId })
-  const plan: PlanStep[] = ['Load the scoped CSV through the MCP tool boundary', 'Analyze rows in an isolated execution provider', 'Verify and persist the generated report']
+  const plan: PlanStep[] = [input.csv === undefined ? 'Load the scoped CSV through the MCP tool boundary' : 'Validate submitted CSV input', 'Analyze rows in an isolated execution provider', 'Verify and persist the generated report']
     .map((label, index) => ({ id: `step-${index + 1}`, label, status: 'pending' }))
   let toolCalls = 0
   const iterations = 1
   let provider: ExecutionProvider | undefined
   let sandboxId: string | undefined
   let sessionClaimed = !env.DB
+  let executionRecorded = false
 
   try {
     await enforceDailyQuota(env, input, guardrails.dailyRuns)
     await claimSession(env, input)
     sessionClaimed = true
     audit.emit({ action: 'request.received', reason: 'User submitted CSV analysis intent', status: 'success' })
-    audit.emit({ action: 'context.built', reason: 'Loaded tenant-scoped session and fixture metadata', status: 'success' })
+    audit.emit({ action: 'context.built', reason: 'Loaded authorized tenant and project execution context', status: 'success' })
     audit.emit({ action: 'plan.created', reason: 'Deterministic planner selected the canonical safe workflow', provider: 'deterministic-fallback', model_or_tool: 'bounded-planner-v1', status: 'success', usage: { tool_calls: 0, iterations, estimated_cost_usd: 0 } })
 
-    const tools = new SafeMcpToolProvider()
-    if (++toolCalls > guardrails.maxToolCalls) throw new Error('GUARDRAIL_TOOL_LIMIT')
-    const csv = (await tools.call('read_csv_fixture', { sessionId: input.sessionId }, true)).content
+    let csv: string
+    if (input.csv !== undefined) {
+      csv = input.csv
+    } else {
+      const tools = new SafeMcpToolProvider()
+      if (++toolCalls > guardrails.maxToolCalls) throw new Error('GUARDRAIL_TOOL_LIMIT')
+      csv = (await tools.call('read_csv_fixture', { sessionId: input.sessionId }, true)).content
+      audit.emit({ action: 'tool.completed', reason: 'Read-only scoped fixture requested by plan', provider: 'mcp-adapter', model_or_tool: 'read_csv_fixture', status: 'success', usage: { tool_calls: toolCalls, iterations, estimated_cost_usd: 0 } })
+    }
+    parseCsvInput(csv)
     plan[0].status = 'complete'
-    audit.emit({ action: 'tool.completed', reason: 'Read-only scoped fixture requested by plan', provider: 'mcp-adapter', model_or_tool: 'read_csv_fixture', status: 'success', usage: { tool_calls: toolCalls, iterations, estimated_cost_usd: 0 } })
+    if (env.DB) {
+      await env.DB.prepare('INSERT INTO executions (id, session_id, provider, status, tool_calls, iterations, duration_ms, created_at, input_source, input_bytes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+        .bind(executionId, input.sessionId, (env.EXECUTION_PROVIDER ?? 'mock') === 'e2b' ? 'e2b' : 'mock-e2b', 'running', toolCalls, iterations, 0, new Date().toISOString(), input.csv === undefined ? 'fixture' : 'submitted', new TextEncoder().encode(csv).byteLength).run()
+      executionRecorded = true
+    }
 
     provider = (env.EXECUTION_PROVIDER ?? 'mock') === 'e2b' ? new E2BProvider(env.E2B_API_KEY ?? '') : new MockE2BProvider()
     sandboxId = await provider.createSandbox()
@@ -83,8 +100,8 @@ export async function runCsvAgent(env: Env, input: RunInput): Promise<RunResult>
     if (env.DB) {
       await env.DB.prepare('UPDATE sessions SET status = ?, updated_at = ? WHERE id = ? AND tenant_id = ? AND project_id = ?')
         .bind('verified', new Date().toISOString(), input.sessionId, input.principal.tenant, input.principal.project).run()
-      await env.DB.prepare('INSERT INTO executions (id, session_id, provider, status, tool_calls, iterations, duration_ms, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-        .bind(executionId, input.sessionId, provider.name, 'verified', toolCalls, iterations, Date.now() - started, new Date().toISOString()).run()
+      await env.DB.prepare('UPDATE executions SET status = ?, duration_ms = ?, finished_at = ? WHERE id = ? AND session_id = ?')
+        .bind('verified', Date.now() - started, new Date().toISOString(), executionId, input.sessionId).run()
       await persistAudit(env, input.sessionId, audit)
     }
 
@@ -95,8 +112,13 @@ export async function runCsvAgent(env: Env, input: RunInput): Promise<RunResult>
     if (env.DB && sessionClaimed) {
       await env.DB.prepare('UPDATE sessions SET status = ?, updated_at = ? WHERE id = ? AND tenant_id = ? AND project_id = ?')
         .bind('failed', new Date().toISOString(), input.sessionId, input.principal.tenant, input.principal.project).run()
-      await env.DB.prepare('INSERT OR IGNORE INTO executions (id, session_id, provider, status, tool_calls, iterations, duration_ms, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-        .bind(executionId, input.sessionId, provider?.name ?? 'unavailable', 'failed', toolCalls, iterations, Date.now() - started, new Date().toISOString()).run()
+      if (executionRecorded) {
+        await env.DB.prepare('UPDATE executions SET status = ?, duration_ms = ?, error_class = ?, finished_at = ? WHERE id = ? AND session_id = ?')
+          .bind('failed', Date.now() - started, failure, new Date().toISOString(), executionId, input.sessionId).run()
+      } else {
+        await env.DB.prepare('INSERT OR IGNORE INTO executions (id, session_id, provider, status, tool_calls, iterations, duration_ms, created_at, error_class, finished_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+          .bind(executionId, input.sessionId, provider?.name ?? 'unavailable', 'failed', toolCalls, iterations, Date.now() - started, new Date().toISOString(), failure, new Date().toISOString()).run()
+      }
       await persistAudit(env, input.sessionId, audit)
     }
     throw error

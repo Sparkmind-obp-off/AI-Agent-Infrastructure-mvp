@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { Sandbox } from '@e2b/code-interpreter'
 import { runCsvAgent } from '../src/server/runtime'
 import { SafeMcpToolProvider } from '../src/server/providers/mcp'
 import { E2BProvider } from '../src/server/providers/e2b'
@@ -26,6 +27,19 @@ describe('Vestren vertical slice', () => {
     await expect(tools.call('unknown_tool', { sessionId: crypto.randomUUID() }, true)).rejects.toThrow('TOOL_NOT_ALLOWED')
   })
 
+  it('keeps submitted CSV analysis deterministic in the mock provider', async () => {
+    const provider = new MockE2BProvider()
+    const csv = 'region,product,revenue,units,satisfaction\nEast,Quartz,450,3,4.8\nNorth,Flint,120,2,3.1\n'
+    const first = await provider.createSandbox(); const second = await provider.createSandbox()
+    try {
+      const a = await provider.execute(first, { csv, timeoutMs: 15_000, maxArtifactBytes: 65_536 })
+      const b = await provider.execute(second, { csv, timeoutMs: 15_000, maxArtifactBytes: 65_536 })
+      expect(a.patterns).toEqual(b.patterns)
+      expect(a.report).toBe(b.report)
+      expect(a.patterns[0].title).toContain('Quartz')
+    } finally { await provider.terminate(first); await provider.terminate(second) }
+  })
+
   it('enforces execution timeout and artifact boundaries', async () => {
     const provider = new MockE2BProvider(); const sandbox = await provider.createSandbox()
     await expect(provider.execute(sandbox, { csv: SAMPLE_CSV, timeoutMs: 100, maxArtifactBytes: 65536 })).rejects.toThrow('GUARDRAIL_TIMEOUT')
@@ -34,6 +48,30 @@ describe('Vestren vertical slice', () => {
 
   it('fails closed when real E2B is selected without credentials', () => {
     expect(() => new E2BProvider('')).toThrow('E2B_NOT_CONFIGURED')
+  })
+
+  it('passes submitted input into the existing E2B adapter and terminates its sandbox', async () => {
+    const written: Array<[string, string]> = []
+    const kill = vi.fn(async () => {})
+    const sandbox = {
+      sandboxId: 'sandbox-test', files: { write: async (path: string, content: string) => { written.push([path, content]) } },
+      runCode: async (code: string) => {
+        expect(code).toContain("open('/home/user/input.csv')")
+        return { error: null, logs: { stdout: [JSON.stringify({ report: '# Vestren CSV Analysis\n## Method\nInput tested', patterns: [{ title: 'One', evidence: 'a' }, { title: 'Two', evidence: 'b' }, { title: 'Three', evidence: 'c' }] })] } }
+      }, kill,
+    }
+    const create = vi.spyOn(Sandbox, 'create').mockResolvedValue(sandbox as unknown as Sandbox)
+    try {
+      const provider = new E2BProvider('test-placeholder')
+      const id = await provider.createSandbox()
+      const csv = 'region,product,revenue,units,satisfaction\nEast,Quartz,450,3,4.8\n'
+      const output = await provider.execute(id, { csv, timeoutMs: 15_000, maxArtifactBytes: 65_536 })
+      expect(written[0]).toEqual(['/home/user/input.csv', csv])
+      expect(output.patterns).toHaveLength(3)
+      await provider.terminate(id)
+      expect(kill).toHaveBeenCalledOnce()
+      expect(await provider.getStatus(id)).toBe('terminated')
+    } finally { create.mockRestore() }
   })
 
   it('fails closed when the tenant daily quota is exhausted', async () => {

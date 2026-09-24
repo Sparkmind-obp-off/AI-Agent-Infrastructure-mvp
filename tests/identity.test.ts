@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { Sandbox } from '@e2b/code-interpreter'
 import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT } from 'jose'
 import { app } from '../functions/api/[[path]]'
 import { Auth0IdentityProvider, TestIdentityProvider, issueTestToken, type AuthenticationResult } from '../src/server/auth'
@@ -201,6 +202,72 @@ describe('HTTP identity to tenant and project authorization integration', () => 
     const ownerSession = await app.request(`/api/sessions/${sessionId}`, { headers: headersB }, env)
     expect(ownerSession.status).toBe(200)
     expect(JSON.stringify(await ownerSession.json())).toContain('must-not-leak')
+  })
+
+  it('executes validated submitted CSV and persists scoped execution metadata and R2 artifact', async () => {
+    const csv = 'region,product,revenue,units,satisfaction\nEast,Quartz,450,3,4.8\nNorth,Flint,120,2,3.1\n'
+    const sessionId = crypto.randomUUID(); const headers = scopeHeaders(tokenA, 'tenant-a', 'project-a')
+    const objects = new Map<string, string>()
+    env.ARTIFACTS = {
+      put: async (key: string, content: string) => { objects.set(key, content) },
+      get: async (key: string) => objects.has(key) ? { body: new Response(objects.get(key)).body, httpMetadata: { contentType: 'text/markdown' } } : null,
+    } as unknown as R2Bucket
+    const body = JSON.stringify({ sessionId, goal: 'Analyze this submitted CSV and produce a report', csv })
+    const run = await app.request('/api/runs', { method: 'POST', headers: { ...headers, 'content-type': 'application/json' }, body }, env)
+    expect(run.status).toBe(200)
+    const result = await run.json() as { executionId: string; patterns: Array<{ title: string }>; artifacts: Array<{ url: string }> }
+    expect(result.patterns[0].title).toContain('Quartz')
+    expect(JSON.stringify(result)).not.toContain('Atlas')
+    const execution = database.exec(`SELECT e.*, s.tenant_id, s.project_id, s.goal FROM executions e JOIN sessions s ON s.id = e.session_id WHERE e.id = '${result.executionId}'`)[0].values[0]
+    expect(execution).toContain('verified')
+    expect(execution).toContain('submitted')
+    expect(execution).toContain(new TextEncoder().encode(csv).byteLength)
+    expect(execution).toContain('tenant-a')
+    expect(execution).toContain('project-a')
+    expect(execution).toContain('Analyze this submitted CSV and produce a report')
+    const artifact = await app.request(result.artifacts[0].url, { headers }, env)
+    expect(artifact.status).toBe(200)
+    expect(await artifact.text()).toContain('Quartz')
+    expect((await app.request(result.artifacts[0].url, { headers: scopeHeaders(tokenB, 'tenant-b', 'project-b') }, env)).status).toBe(404)
+    expect((await app.request(result.artifacts[0].url, { headers: scopeHeaders(tokenA, 'tenant-a', 'project-private') }, env)).status).toBe(403)
+  })
+
+  it('rejects unauthorized and malformed submitted execution before changing persisted state', async () => {
+    const csv = 'region,product,revenue,units,satisfaction\nEast,Quartz,450,3,4.8\n'
+    const body = JSON.stringify({ sessionId: crypto.randomUUID(), goal: 'Analyze the submitted CSV', csv })
+    const attempt = (headers: Record<string, string>, payload = body) => app.request('/api/runs', { method: 'POST', headers: { ...headers, 'content-type': 'application/json' }, body: payload }, env)
+    expect((await attempt({})).status).toBe(401)
+    expect((await attempt(scopeHeaders(tokenA, 'tenant-read', 'project-read'))).status).toBe(403)
+    expect((await attempt(scopeHeaders(tokenA, 'tenant-b', 'project-b'))).status).toBe(403)
+    expect((await attempt(scopeHeaders(tokenA, 'tenant-a', 'project-private'))).status).toBe(403)
+    const allowed = scopeHeaders(tokenA, 'tenant-a', 'project-a')
+    for (const invalid of ['', 'region,product,revenue,units,satisfaction\nEast,Quartz,NaN,3,4.8\n', 'region,product,revenue,units,satisfaction\n"East",Quartz,450,3,4.8\n', csv.repeat(3000)]) {
+      const response = await attempt(allowed, JSON.stringify({ sessionId: crypto.randomUUID(), goal: 'Analyze the submitted CSV', csv: invalid }))
+      expect(response.status).toBe(400)
+      await expect(response.json()).resolves.toEqual({ error: 'INVALID_REQUEST' })
+    }
+    expect((await attempt(allowed, '{bad-json')).status).toBe(400)
+    expect(database.exec('SELECT COUNT(*) FROM sessions')[0].values[0][0]).toBe(0)
+    expect(database.exec('SELECT COUNT(*) FROM executions')[0].values[0][0]).toBe(0)
+  })
+
+  it('persists normalized provider failure without leaking provider internals', async () => {
+    const failureText = 'secret=private-provider-data'
+    const create = vi.spyOn(Sandbox, 'create').mockRejectedValue(new Error(failureText))
+    try {
+      env.EXECUTION_PROVIDER = 'e2b'; env.E2B_API_KEY = 'test-placeholder'
+      const csv = 'region,product,revenue,units,satisfaction\nEast,Quartz,450,3,4.8\n'
+      const response = await app.request('/api/runs', {
+        method: 'POST', headers: { ...scopeHeaders(tokenA, 'tenant-a', 'project-a'), 'content-type': 'application/json' },
+        body: JSON.stringify({ sessionId: crypto.randomUUID(), goal: 'Analyze the submitted CSV', csv }),
+      }, env)
+      expect(response.status).toBe(500)
+      expect(await response.text()).toBe('{"error":"RUN_FAILED"}')
+      const records = database.exec('SELECT e.id, e.status, e.error_class, e.input_source, e.finished_at, s.tenant_id, s.project_id FROM executions e JOIN sessions s ON s.id = e.session_id')[0].values
+      expect(records).toHaveLength(1)
+      expect(records[0]).toEqual([expect.any(String), 'failed', 'RUN_FAILED', 'submitted', expect.any(String), 'tenant-a', 'project-a'])
+      expect(JSON.stringify(database.exec('SELECT payload FROM audit_events'))).not.toContain(failureText)
+    } finally { create.mockRestore() }
   })
 
   it('rejects malformed artifact keys before storage access', async () => {

@@ -47,6 +47,7 @@ export async function createTestDatabase() {
   const database = new SQL.Database()
   database.run(readFileSync(resolve('migrations/0001_initial.sql'), 'utf8'))
   database.run(readFileSync(resolve('migrations/0002_identity_and_memberships.sql'), 'utf8'))
+  database.run(readFileSync(resolve('migrations/0003_execution_input.sql'), 'utf8'))
   return { binding: new D1TestDatabase(database) as unknown as D1Database, database }
 }
 

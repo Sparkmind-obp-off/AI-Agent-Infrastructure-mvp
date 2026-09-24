@@ -4,10 +4,11 @@ import { authenticate, isTestIdentityEnabled, issueTestToken, type Authenticated
 import { AuthorizationError, authorizeProject, listAccessibleProjects, requestedScope, syncIdentity, type Permission } from '../../src/server/authorization'
 import type { Env } from '../../src/server/config'
 import { runCsvAgent } from '../../src/server/runtime'
+import { parseCsvInput } from '../../src/server/sample'
 
 export const app = new Hono<{ Bindings: Env }>()
 type AppContext = Context<{ Bindings: Env }>
-const runSchema = z.object({ sessionId: z.string().uuid(), goal: z.string().min(10).max(500) })
+const runSchema = z.object({ sessionId: z.string().uuid(), goal: z.string().min(10).max(500), csv: z.string().optional() })
 const artifactKeySchema = z.string().regex(/^sessions\/([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})\/([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})\/report\.md$/i)
 
 const authStatus = (code: AuthenticationErrorCode) => code === 'IDENTITY_PROVIDER_UNAVAILABLE' ? 503 : 401
@@ -66,7 +67,10 @@ app.post('/api/runs', async (c) => {
   const context = await contextFor(c, 'execution:start')
   if (context instanceof Response) return context
   const parsed = runSchema.safeParse(await c.req.json().catch(() => null))
-  if (!parsed.success) return c.json({ error: 'INVALID_REQUEST', details: parsed.error.issues }, 400)
+  if (!parsed.success) return c.json({ error: 'INVALID_REQUEST' }, 400)
+  if (parsed.data.csv !== undefined) {
+    try { parseCsvInput(parsed.data.csv) } catch { return c.json({ error: 'INVALID_REQUEST' }, 400) }
+  }
   try { return c.json(await runCsvAgent(c.env, { ...parsed.data, principal: { tenant: context.tenantId, project: context.projectId, subject: context.identity.subject } })) }
   catch (error) {
     const code = error instanceof Error ? error.message.split(':', 1)[0] : 'UNKNOWN_ERROR'
