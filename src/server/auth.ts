@@ -100,7 +100,7 @@ export class TestIdentityProvider implements IdentityProvider {
 }
 
 export function isTestIdentityEnabled(env: Env) {
-  return env.APP_ENV !== 'production' && env.AUTH_TEST_MODE === 'true' && Boolean(env.AUTH_TEST_SIGNING_SECRET)
+  return (env.APP_ENV === 'development' || env.APP_ENV === 'test') && env.AUTH_TEST_MODE === 'true' && Boolean(env.AUTH_TEST_SIGNING_SECRET)
 }
 
 export function createIdentityProvider(env: Env): IdentityProvider | null {

@@ -42,7 +42,7 @@ Browser tokens use Auth0's in-memory cache. No signing key, client secret, or re
 |---|---|---|
 | `GET` | `/` | Workbench UI and Auth0 entry point |
 | `GET` | `/api/health` | Public health and configured identity-provider status |
-| `POST` | `/api/auth/test` | Non-production-only deterministic identity; requires both test gates |
+| `POST` | `/api/auth/test` | Explicit `development`/`test` deterministic identity; requires both test gates |
 | `GET` | `/api/me` | Authenticated identity and authoritative accessible project list |
 | `POST` | `/api/runs` | `execution:start`; body `{ sessionId: UUID, goal: string }` |
 | `GET` | `/api/sessions/:id` | `session:read`; scoped session and audit trail |

@@ -33,7 +33,7 @@ Roles are intentionally small:
 
 Deterministic HMAC test tokens exist only behind both gates:
 
-- `APP_ENV` is not `production`;
+- `APP_ENV` is explicitly `development` or `test` (unset and `preview` fail closed);
 - `AUTH_TEST_MODE=true` and `AUTH_TEST_SIGNING_SECRET` exists.
 
 `/api/auth/test` returns 404 in production even if test variables are accidentally present. The test provider has a separate issuer, audience, secret, and code path. It never silently replaces Auth0 production verification.
