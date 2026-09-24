@@ -18,9 +18,9 @@ Implemented and locally tested:
 - explicitly gated deterministic test identity for local/test environments only;
 - validated pasted CSV input (or the existing deterministic fixture), ToolProvider/MCP fixture boundary, ExecutionProvider with E2B and mock-E2B, guardrails, scoped D1 execution records, and R2 artifacts;
 - integration tests covering HTTP authentication through D1/R2 authorization behavior;
-- S3 Workers AI structured planning at `/api/agent/runs`, with strict scope/tool/argument validation and one bounded CSV action through the existing ToolProvider and ExecutionProvider. The S2 `/api/runs` deterministic route remains available.
+- S3 Workers AI structured planning at `/api/agent/runs`, with strict scope/tool/argument validation and one bounded CSV action through the existing ToolProvider and ExecutionProvider. The S2 `/api/runs` deterministic route remains available in local/test only; production rejects it and requires real E2B, Workers AI, D1 and R2.
 
-The production identity **code path exists**, but Auth0 tenant/application values and test users are owner-managed deployment configuration. A deployment without those values fails closed and must not be described as a verified live login.
+The production identity **code path exists**, but Auth0 tenant/application values and owner memberships are owner-managed deployment configuration. A deployment without those values fails closed and must not be described as a verified live login. The live root displays Owner Sign In and public setup values; `/api/owner/status` requires real Auth0 identity and both tenant/project owner roles.
 
 ## Identity decision
 
@@ -43,6 +43,8 @@ Browser tokens use Auth0's in-memory cache. No signing key, client secret, or re
 |---|---|---|
 | `GET` | `/` | Workbench UI and Auth0 entry point |
 | `GET` | `/api/health` | Public health and configured identity-provider status |
+| `GET` | `/api/public-config` | Only public Auth0 SPA settings and exact callback/logout URLs; no credentials |
+| `GET` | `/api/owner/status` | Auth0-authenticated tenant + project owner only; scoped operational/secret status, never values |
 | `POST` | `/api/auth/test` | Explicit `development`/`test` deterministic identity; requires both test gates |
 | `GET` | `/api/me` | Authenticated identity and authoritative accessible project list |
 | `POST` | `/api/runs` | `execution:start`; body `{ sessionId: UUID, goal: string, csv?: string }`. When omitted, the deterministic fixture is used. |
@@ -87,7 +89,7 @@ Project roles:
 
 Production users are provisioned by inserting memberships through an owner-controlled administrative process. Self-service tenant creation is not implemented.
 
-To submit real input, paste unquoted CSV into the existing Workbench CSV field or send `csv` to `/api/runs`. The server accepts only the header `region,product,revenue,units,satisfaction`, 1–1,000 data rows, at most 64 KiB, with nonnegative numeric revenue, positive integer units, and satisfaction from 0 to 5. There is no file upload. Only validated input reaches the selected execution provider; the execution record stores source and byte count, not the raw CSV.
+To submit real input, paste unquoted CSV into the existing Workbench CSV field or send `csv` to `/api/agent/runs`. The server accepts only the header `region,product,revenue,units,satisfaction`, 1–1,000 data rows, at most 64 KiB, with nonnegative numeric revenue, positive integer units, and satisfaction from 0 to 5. There is no file upload. Only validated input reaches the selected execution provider; the execution record stores source and byte count, not the raw CSV.
 
 ## Local development
 
@@ -119,7 +121,14 @@ Server-side Cloudflare variables/secrets:
 - `AUTH0_ISSUER` — canonical HTTPS issuer, normally `https://<tenant-or-custom-domain>/`
 - `AUTH0_AUDIENCE` — Auth0 API identifier
 
-Browser-safe build variables:
+Public Cloudflare Pages production variables (also returned via `/api/public-config`; values come from the owner-managed Auth0 SPA/API):
+
+- `AUTH0_DOMAIN` — Auth0 hostname (without scheme)
+- `AUTH0_CLIENT_ID` — public SPA client identifier
+- `AUTH0_ISSUER` — exact HTTPS issuer ending in `/`
+- `AUTH0_AUDIENCE` — public API identifier
+
+Legacy browser-safe build variables (optional fallback; no longer required when runtime public variables are configured):
 
 - `VITE_AUTH0_DOMAIN`
 - `VITE_AUTH0_CLIENT_ID`
@@ -174,7 +183,7 @@ Before production identity smoke testing:
 - Owner-supplied Auth0 configuration and real-user production login must be verified after configuration.
 - No self-service tenant/project provisioning or invitation UI exists.
 - Identity logout invalidates the local Auth0 session; immediate API-token revocation remains governed by Auth0 token lifetime/provider policy.
-- Real E2B execution still requires `E2B_API_KEY`; deterministic mock execution remains the configured deployment default.
+- Real E2B execution requires a working runtime `E2B_API_KEY`; production selects E2B and rejects mock fallback. A configured secret is not proof of successful live execution.
 - Durable Object live session ownership and real CSV upload/scanning remain future work. Live Workers AI and E2B verification require owner-managed access; deterministic S3 tests do not establish live provider success.
 
 ## Recommended next action

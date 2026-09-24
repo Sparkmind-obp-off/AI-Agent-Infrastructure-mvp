@@ -8,6 +8,8 @@ export interface Env {
   APP_ENV?: 'development' | 'test' | 'preview' | 'production'
   AUTH0_ISSUER?: string
   AUTH0_AUDIENCE?: string
+  AUTH0_DOMAIN?: string
+  AUTH0_CLIENT_ID?: string
   AUTH_TEST_MODE?: string
   AUTH_TEST_SIGNING_SECRET?: string
   EXECUTION_PROVIDER?: string

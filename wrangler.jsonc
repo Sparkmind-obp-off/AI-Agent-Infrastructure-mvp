@@ -7,7 +7,7 @@
   "ai": { "binding": "AI" },
   "vars": {
     "APP_ENV": "production",
-    "EXECUTION_PROVIDER": "mock",
+    "EXECUTION_PROVIDER": "e2b",
     "ARTIFACT_STORAGE": "r2",
     "MAX_TOOL_CALLS": "3",
     "MAX_ITERATIONS": "4",

@@ -44,7 +44,23 @@ async function provisionLocalTestWorkspace(env: Env) {
   await env.DB.prepare('INSERT OR IGNORE INTO project_memberships (project_id, user_id, role, created_at) VALUES (?, ?, ?, ?)').bind('project-test-a', userId, 'owner', now).run()
 }
 
-app.get('/api/health', (c) => c.json({ ok: true, service: 'vestren-workbench', executionProvider: c.env.EXECUTION_PROVIDER ?? 'mock', identityProvider: c.env.AUTH0_ISSUER && c.env.AUTH0_AUDIENCE ? 'auth0' : isTestIdentityEnabled(c.env) ? 'test' : 'unconfigured' }))
+app.get('/api/health', (c) => c.json({ ok: true, service: 'vestren-workbench', executionProvider: c.env.EXECUTION_PROVIDER ?? 'unconfigured', identityProvider: c.env.AUTH0_ISSUER && c.env.AUTH0_AUDIENCE ? 'auth0' : isTestIdentityEnabled(c.env) ? 'test' : 'unconfigured' }))
+
+app.get('/api/public-config', (c) => {
+  const url = new URL(c.req.url)
+  const productionUrl = `${url.protocol}//${url.host}`
+  return c.json({
+    configured: Boolean(c.env.AUTH0_DOMAIN && c.env.AUTH0_CLIENT_ID && c.env.AUTH0_ISSUER && c.env.AUTH0_AUDIENCE),
+    domain: c.env.AUTH0_DOMAIN ?? null,
+    issuer: c.env.AUTH0_ISSUER ?? null,
+    audience: c.env.AUTH0_AUDIENCE ?? null,
+    clientId: c.env.AUTH0_CLIENT_ID ?? null,
+    redirectUri: productionUrl,
+    callbackUrl: productionUrl,
+    logoutUrl: productionUrl,
+    productionUrl,
+  })
+})
 
 app.post('/api/auth/test', async (c) => {
   if (!isTestIdentityEnabled(c.env)) return c.notFound()
@@ -75,15 +91,43 @@ async function startRun(c: AppContext, planner?: 'llm') {
   catch (error) {
     const code = error instanceof Error ? error.message.split(':', 1)[0] : 'UNKNOWN_ERROR'
     if (code === 'AUTHORIZATION_SCOPE_MISMATCH') return c.json({ error: 'AUTHORIZATION_DENIED' }, 403)
+    if (code === 'RUN_ALREADY_EXISTS') return c.json({ error: code }, 409)
     if (code.startsWith('GUARDRAIL_')) return c.json({ error: code }, 429)
-    if (code === 'E2B_NOT_CONFIGURED' || code === 'LLM_NOT_CONFIGURED') return c.json({ error: code }, 503)
+    if (['E2B_NOT_CONFIGURED', 'LLM_NOT_CONFIGURED', 'PERSISTENCE_UNAVAILABLE', 'PRODUCTION_PROVIDER_NOT_CONFIGURED'].includes(code)) return c.json({ error: code }, 503)
     if (['INVALID_AGENT_PLAN', 'INVALID_TOOL_ARGUMENTS', 'TOOL_NOT_ALLOWED'].includes(code)) return c.json({ error: code }, 400)
     return c.json({ error: 'RUN_FAILED' }, 500)
   }
 }
 
-app.post('/api/runs', (c) => startRun(c))
+app.post('/api/runs', (c) => c.env.APP_ENV === 'production' ? c.json({ error: 'PRODUCTION_PROVIDER_NOT_CONFIGURED' }, 503) : startRun(c))
 app.post('/api/agent/runs', (c) => startRun(c, 'llm'))
+
+app.get('/api/owner/status', async (c) => {
+  const context = await contextFor(c, 'project:read')
+  if (context instanceof Response) return context
+  if (context.identity.provider !== 'auth0' || context.projectRole !== 'owner' || context.tenantRole !== 'owner') return c.json({ error: 'AUTHORIZATION_DENIED' }, 403)
+  if (!c.env.DB) return c.json({ error: 'PERSISTENCE_UNAVAILABLE' }, 503)
+  const latest = await c.env.DB.prepare('SELECT id, status, updated_at FROM sessions WHERE tenant_id = ? AND project_id = ? ORDER BY updated_at DESC LIMIT 1')
+    .bind(context.tenantId, context.projectId).first<{ id: string; status: string; updated_at: string }>()
+  let r2: 'HEALTHY' | 'FAILED' = 'FAILED'
+  try { if (c.env.ARTIFACTS) { await c.env.ARTIFACTS.list({ limit: 1 }); r2 = 'HEALTHY' } } catch { /* fail closed */ }
+  return c.json({
+    identity: { subject: context.identity.subject, provider: 'auth0', email: context.identity.email ?? null },
+    tenant: { id: context.tenantId, name: context.tenantName, role: context.tenantRole },
+    project: { id: context.projectId, name: context.projectName, role: context.projectRole },
+    session: latest ?? null,
+    providers: {
+      auth0: 'VERIFIED', workersAI: c.env.AI ? 'CONFIGURED' : 'FAILED',
+      e2b: c.env.EXECUTION_PROVIDER === 'e2b' && c.env.E2B_API_KEY ? 'CONFIGURED' : 'FAILED',
+      d1: 'HEALTHY', r2,
+    },
+    secrets: {
+      E2B_API_KEY: { status: c.env.E2B_API_KEY ? 'CONFIGURED' : 'NOT_CONFIGURED', value: 'HIDDEN' },
+      AUTH0_CLIENT_SECRET: { status: 'NOT_REQUIRED', value: 'HIDDEN' },
+      WORKERS_AI_CREDENTIAL: { status: 'NOT_REQUIRED (AI binding)', value: 'HIDDEN' },
+    },
+  })
+})
 
 app.get('/api/sessions/:id', async (c) => {
   const context = await contextFor(c, 'session:read')
@@ -123,6 +167,7 @@ app.get('/api/artifacts/:key{.+}', async (c) => {
   if (!metadata) return c.notFound()
   const object = c.env.ARTIFACTS ? await c.env.ARTIFACTS.get(parsed.data) : null
   if (object) return new Response(object.body, { headers: { 'content-type': object.httpMetadata?.contentType ?? metadata.content_type, 'content-disposition': 'attachment; filename="vestren-report.md"' } })
+  if (c.env.APP_ENV === 'production') return c.json({ error: 'ARTIFACT_UNAVAILABLE' }, 503)
   return new Response(metadata.content, { headers: { 'content-type': metadata.content_type, 'content-disposition': 'attachment; filename="vestren-report.md"' } })
 })
 

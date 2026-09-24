@@ -110,4 +110,23 @@ describe('S3 scoped agent endpoint', () => {
     expect((await request(id)).status).toBe(503)
     expect((await app.request('/api/runs', { method: 'POST', headers: headers(), body: JSON.stringify({ sessionId: sessionId(), goal }) }, env)).status).toBe(200)
   })
+
+  it('forbids production mock execution, fixture route, missing persistence and duplicate runs', async () => {
+    const { env, request, headers } = await setup(); env.APP_ENV = 'production'; env.EXECUTION_PROVIDER = 'mock'
+    expect((await app.request('/api/runs', { method: 'POST', headers: headers(), body: JSON.stringify({ sessionId: sessionId(), goal }) }, env)).status).toBe(503)
+    env.APP_ENV = 'test'; const id = sessionId(); env.AI = ai(plan(id))
+    expect((await request(id)).status).toBe(200)
+    expect((await request(id)).status).toBe(409)
+  })
+
+  it('publishes only explicitly public Auth0 configuration and requires real Auth0 for owner status', async () => {
+    const { env, headers } = await setup()
+    env.AUTH0_DOMAIN = 'example.auth0.com'; env.AUTH0_CLIENT_ID = 'public-spa-id'
+    env.AUTH0_ISSUER = 'https://example.auth0.com/'; env.AUTH0_AUDIENCE = 'https://api.example.test'
+    const publicResponse = await app.request('https://vestren-workbench.pages.dev/api/public-config', {}, env)
+    const config = await publicResponse.json() as Record<string, unknown>
+    expect(config).toMatchObject({ configured: true, clientId: 'public-spa-id', callbackUrl: 'https://vestren-workbench.pages.dev' })
+    expect(JSON.stringify(config)).not.toContain('AUTH_SIGNING_SECRET')
+    expect((await app.request('/api/owner/status', { headers: headers() }, env)).status).toBe(403)
+  })
 })

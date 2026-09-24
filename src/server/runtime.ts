@@ -12,7 +12,7 @@ import type { PlanStep, RunResult } from '../shared/types'
 
 type RunInput = { sessionId: string; goal: string; csv?: string; principal: { tenant: string; project: string; subject?: string }; planner?: 'llm' }
 
-const knownFailures = new Set(['AUTHORIZATION_SCOPE_MISMATCH', 'GUARDRAIL_DAILY_RUN_LIMIT', 'GUARDRAIL_TOOL_LIMIT', 'GUARDRAIL_TIMEOUT', 'GUARDRAIL_ARTIFACT_SIZE', 'E2B_NOT_CONFIGURED', 'E2B_EXECUTION_FAILED', 'VERIFICATION_FAILED', 'SANDBOX_NOT_FOUND', 'INVALID_CSV_INPUT', 'LLM_NOT_CONFIGURED', 'LLM_PROVIDER_FAILED', 'INVALID_AGENT_PLAN', 'TOOL_NOT_ALLOWED', 'INVALID_TOOL_ARGUMENTS', 'GUARDRAIL_STEP_LIMIT'])
+const knownFailures = new Set(['AUTHORIZATION_SCOPE_MISMATCH', 'GUARDRAIL_DAILY_RUN_LIMIT', 'GUARDRAIL_TOOL_LIMIT', 'GUARDRAIL_TIMEOUT', 'GUARDRAIL_ARTIFACT_SIZE', 'E2B_NOT_CONFIGURED', 'E2B_EXECUTION_FAILED', 'VERIFICATION_FAILED', 'SANDBOX_NOT_FOUND', 'INVALID_CSV_INPUT', 'LLM_NOT_CONFIGURED', 'LLM_PROVIDER_FAILED', 'INVALID_AGENT_PLAN', 'TOOL_NOT_ALLOWED', 'INVALID_TOOL_ARGUMENTS', 'GUARDRAIL_STEP_LIMIT', 'RUN_ALREADY_EXISTS', 'PRODUCTION_PROVIDER_NOT_CONFIGURED', 'PERSISTENCE_UNAVAILABLE'])
 const errorClass = (error: unknown) => {
   const code = error instanceof Error ? error.message.split(':', 1)[0] : ''
   return knownFailures.has(code) ? code : 'RUN_FAILED'
@@ -21,10 +21,11 @@ const errorClass = (error: unknown) => {
 async function claimSession(env: Env, input: RunInput) {
   if (!env.DB) return
   const now = new Date().toISOString()
-  await env.DB.prepare('INSERT OR IGNORE INTO sessions (id, tenant_id, project_id, goal, status, updated_at) VALUES (?, ?, ?, ?, ?, ?)')
+  const inserted = await env.DB.prepare('INSERT OR IGNORE INTO sessions (id, tenant_id, project_id, goal, status, updated_at) VALUES (?, ?, ?, ?, ?, ?)')
     .bind(input.sessionId, input.principal.tenant, input.principal.project, input.goal, 'running', now).run()
   const owner = await env.DB.prepare('SELECT tenant_id, project_id FROM sessions WHERE id = ?').bind(input.sessionId).first<{ tenant_id: string; project_id: string }>()
   if (!owner || owner.tenant_id !== input.principal.tenant || owner.project_id !== input.principal.project) throw new Error('AUTHORIZATION_SCOPE_MISMATCH')
+  if (inserted.meta?.changes === 0) throw new Error('RUN_ALREADY_EXISTS')
   await env.DB.prepare('UPDATE sessions SET goal = ?, status = ?, updated_at = ? WHERE id = ? AND tenant_id = ? AND project_id = ?')
     .bind(input.goal, 'running', now, input.sessionId, input.principal.tenant, input.principal.project).run()
 }
@@ -71,6 +72,8 @@ export async function runCsvAgent(env: Env, input: RunInput): Promise<RunResult>
   let executionRecorded = false
 
   try {
+    if (env.APP_ENV === 'production' && (!env.DB || !env.ARTIFACTS)) throw new Error('PERSISTENCE_UNAVAILABLE')
+    if (env.APP_ENV === 'production' && (input.planner !== 'llm' || env.EXECUTION_PROVIDER !== 'e2b')) throw new Error('PRODUCTION_PROVIDER_NOT_CONFIGURED')
     await enforceDailyQuota(env, input, guardrails.dailyRuns)
     await claimSession(env, input)
     sessionClaimed = true
